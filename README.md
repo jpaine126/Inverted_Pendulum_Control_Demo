@@ -25,7 +25,6 @@ Included Files:
 inverted_pendulum.py
 PID.py
 LQR.py
-
 ```
 
 ```
@@ -34,7 +33,6 @@ Numpy
 Scipy
 Python Control Systems Library
 Matlibplot
-
 ```
 ### Physical Paramters
 
