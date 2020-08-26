@@ -9,10 +9,13 @@ Created on Mon Aug 24 13:36:32 2020
 # Libraries
 import numpy as np
 from scipy import signal
+import control
 import matplotlib.pyplot as plt
+import math
 
 # custom classes
 from PID import PID
+from LQR import LQR
 
 """   SIMULATION PARAMETERS   """
 
@@ -27,25 +30,40 @@ I       = (1/3)*M_Arm*(length**2)
 
 # Controller Parameters
 
-K_P = 50
+#  PID
+K_P = 100
 K_I = 1
-K_D = 1
+K_D = 5
+
+#  LQR
+
+q11 = 5000
+q33 = 100
+
+Q = np.diagflat([q11, 0, q33, 0])
+
+R = np.array([1])
 
 # Initialize States
 x         = 0
 x_dot     = 0
-theta     = .1   # Vertical at theta=pi rads
-theta_dot = 0
+theta     = 0
+theta_dot = 1
 states = np.array([[x], [x_dot], [theta], [theta_dot]])
 
 # Placeholders for integration
 states_l = np.copy(states)
 
-# Sample times and sim length
-t_final       = 10
+# Selected Control Scheme
+control_scheme = 2
+#  1 - PID
+#  2 - LQR
 
-dt_plant      = 0.001
-dt_controller = 0.01
+# Sample times and sim length
+t_final      = 10
+
+dt_plant     = 0.001
+dt_control   = 0.001
 
 """   PLANT REPRESENTATION   """
 
@@ -90,13 +108,25 @@ D_discrete = inverse_pendulum_plant_d.D
 """   CONTROLLER REPRESENTATION   """
 
 # Initialize controller
-controller = PID(K_P, K_I, K_D, dt=dt_plant, antiwindupmode=1)
-controller.set_control_limit(1)
-
+if control_scheme == 1:   #PID Controller
+    controller = PID(K_P, K_I, K_D, dt=dt_control, antiwindupmode=1)
+    controller.set_control_limit(1)
+    
+    # Eliminate spike in control force from start
+    controller.set_last_error(-states_l[2][0])
+    
+elif control_scheme == 2: #LQR Controller
+    K, S, E = control.lqr(A, B, Q, R)
+    #K[0,0] = 0 #no constraint on x
+    #K[0,1] = 0 #no constraint on x_dot
+    controller = LQR(K)
+    
+    
 """   SIMULATION   """
 
 # Time Vector
-t = np.arange(0, t_final, dt_plant)
+t_plant   = np.arange(0, t_final, dt_plant)
+t_control = np.arange(0, t_final, dt_control)
 
 # Collector for states
 states_coll = [[],[],[],[]]
@@ -104,22 +134,47 @@ states_coll = [[],[],[],[]]
 # Collector for control force
 control_force_coll = []
 
-# Eliminate spike in control force from start
-controller.set_last_error(-states_l[2][0])
 
-for i in t:
-    # Calculate control action
-    control_force = controller.update(-states_l[2][0])
-    
-    # Update states with ss eqs
-    states = np.matmul(A_discrete, states_l) + B_discrete*control_force
-    
-    # Collect variables to plot
-    states_coll = np.append(states_coll, states_l,axis=1)
+full_step = int(dt_control/dt_plant)
+steps = math.ceil(t_final/dt_control)
+
+for i in range(0, steps):
+    if control_scheme == 1:   #PID Controller
+            # Calculate control action
+        control_force = controller.update(-states_l[2][0])
+    elif control_scheme == 2: #LQR Controller
+        control_force = controller.calc_force(states_l)
+            
     control_force_coll = np.append(control_force_coll, control_force)
     
-    # Store info for next iteration
-    states_l = states
+    for i in range(0, full_step):
+         # Update states with ss eqs
+        states = np.matmul(A_discrete, states_l) + B_discrete*control_force
+        
+        # Collect variables to plot
+        states_coll = np.append(states_coll, states_l,axis=1)
+        
+        # Store info for next iteration
+        states_l = states
+
+# for i in t_plant:
+    
+#     if control_scheme == 1:   #PID Controller
+#         # Calculate control action
+#         control_force = controller.update(-states_l[2][0])
+#     elif control_scheme == 2: #LQR Controller
+#         control_force = controller.calc_force(states_l)
+            
+#         control_force_coll = np.append(control_force_coll, control_force)
+    
+#     # Update states with ss eqs
+#     states = np.matmul(A_discrete, states_l) + B_discrete*control_force
+    
+#     # Collect variables to plot
+#     states_coll = np.append(states_coll, states_l,axis=1)
+    
+#     # Store info for next iteration
+#     states_l = states
 
 
 """   PLOTS   """
@@ -128,15 +183,15 @@ for i in t:
 # Subplot 2 = control force and error
 fig, axs = plt.subplots(2)
 
-axs[0].plot(t, states_coll[:][0], label='x')
-axs[0].plot(t, states_coll[:][1], label='x_dot')
-axs[0].plot(t, states_coll[:][2], label='theta')
-axs[0].plot(t, states_coll[:][3], label='theta_dot')
+axs[0].plot(t_plant, states_coll[:][0], label='x')
+axs[0].plot(t_plant, states_coll[:][1], label='x_dot')
+axs[0].plot(t_plant, states_coll[:][2], label='theta')
+axs[0].plot(t_plant, states_coll[:][3], label='theta_dot')
 
 axs[0].legend(loc='best', shadow=True, framealpha=1)
 
-axs[1].plot(t, control_force_coll, label = 'Control Force')
-axs[1].plot(t, -states_coll[:][2], label = 'Error')
+axs[1].plot(t_control, control_force_coll, label = 'Control Force')
+axs[1].plot(t_plant, -states_coll[:][2], label = 'Error')
 
 axs[1].legend(loc='best', shadow=True, framealpha=1)
 
