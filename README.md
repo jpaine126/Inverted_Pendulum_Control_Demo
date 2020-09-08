@@ -54,6 +54,10 @@ K_P = 10    % Proportional Gain
 K_I = 1     % Integral Gain
 K_D = 1     % Derivative Gain
 ```
+
+On line 124 there are a couple other parameters that can be changed pertaining to the antiwind up  on the integrator term (`antiwindupmode, control_limit`). This shouldn't need to be changed at all, but you can experiment with making the control action weaker with the antiwindup turned off, to see why it is necessary in the first place.
+
+
 ##### Linear Quadratic Regulator
 
 The LQR has three parameters that can be tuned to change the controller response. q11 and q33 represent the relative cost of the associated state in the system, and r represents the cost of the control force, meaning that a higher value causes the controller to react more strongly to that state. Individual gains can be manually set to zero after calculation to see the effect of eliminating the cost of that state.
@@ -64,6 +68,9 @@ q33 = 100   % Cost on angle error
 
 r   = 1     % Cost on control force
 ```
+
+On line 138, there are two parameters for setting a maximum control force for the LQR (`max_input, max_input_on`). By default it is turned off. This may need to be turned on when using a lot of noise to ensure a reasonable response.
+
 #### Initial Conditions
 ```
 x         = 0  % Initial Cart Position - m
@@ -74,13 +81,30 @@ theta_dot = 2  % Initial Pendulum Angular V - rad/s
 
 #### Time and Simulation Parameters
 ```
+# Selected Control Scheme
+control_scheme = 2
+#  1 - PID
+#  2 - LQR
+
+# Noise
+measure_noise = 0
+#  0 - No Noise
+#  1 - Noise
+
+noise_val = 0.01
+
+...
+
 t_final       = 10     % Length of Simulation - s
 dt_plant      = 0.001  % Size of Time Step for Plant Dynamics - s
 dt_control    = 0.01   % Size of Time Step for Controller Update - s
 ```
 
+The dt\_control should be chosen so that dt\_plant is a multiple of dt\_control. 
+
 ## Planned Features
 
 - [x] Multiple Control Algorithms, including Linear Quadratic Regulator.
 - [ ] Adding noise and multiple types of observers to the system.
+- [ ] Changing the plant simulation to use the full non-linear equations of motion.
 - [ ] A graphical interface in QT that will allow the user to select the control algorithm from a drop down menu, and will have text input for changing gains, parameters, sample time, and initial conditions.

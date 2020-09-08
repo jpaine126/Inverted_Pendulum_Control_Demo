@@ -23,14 +23,14 @@ from math import copysign
 class PID:
     
 
-    def __init__(self, K_P, K_I, K_D, dt=1, antiwindupmode=0):
+    def __init__(self, K_P, K_I, K_D, dt=1, antiwindupmode=0, control_limit=10):
         self.K_P = K_P
         self.K_I = K_I
         self.K_D = K_D
         self.dt  = dt
         self.last_error = 0
         self.integrator = 0
-        self.control_limit = 10
+        self.control_limit = control_limit
         self.antiwindup_mode = antiwindupmode
         
     " Getters and Setters "
