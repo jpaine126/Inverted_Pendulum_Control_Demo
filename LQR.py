@@ -13,15 +13,23 @@ This class if for implementing a LQR controller, not for designing one.
 
 """
 
+from math import copysign
 
 class LQR:
 
-    def __init__(self, K):
+    def __init__(self, K, max_input=1, max_input_on=False):
         self.K = K
+        self.max_input = max_input
+        self.max_input_on = max_input_on
         
     def set_gain(self, K):
         self.K = K
         
+    def max_input_enable(self):
+        self.max_input_on = True
+    
+    def max_input_disable(self):
+        self.max_input_on = False
         
     def calc_force(self, states):
       
@@ -31,5 +39,9 @@ class LQR:
             control += states[i,0]*self.K[0,i]
             #print(states[i,0])
             #print(self.K[0,1])
+            
+        if self.max_input_on:
+            if abs(control) > self.max_input:
+                control = copysign(self.max_input, control)
             
         return -control

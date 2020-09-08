@@ -12,12 +12,27 @@ from scipy import signal
 import control
 import matplotlib.pyplot as plt
 import math
+import random
 
 # custom classes
 from PID import PID
 from LQR import LQR
 
 """   SIMULATION PARAMETERS   """
+# Switches
+
+# Selected Control Scheme
+control_scheme = 2
+#  1 - PID
+#  2 - LQR
+
+# Noise
+measure_noise = 0
+#  0 - No Noise
+#  1 - Noise
+
+noise_val = 0.01
+
 
 # Physical Parameters
 
@@ -40,30 +55,27 @@ K_D = 5
 q11 = 5000
 q33 = 100
 
+r   = 1
+
 Q = np.diagflat([q11, 0, q33, 0])
 
-R = np.array([1])
+R = np.array([r])
 
 # Initialize States
-x         = 0
-x_dot     = 0
-theta     = 0
-theta_dot = 1
+x         = 0.0
+x_dot     = 0.0
+theta     = 0.0
+theta_dot = 1.0
 states = np.array([[x], [x_dot], [theta], [theta_dot]])
 
 # Placeholders for integration
 states_l = np.copy(states)
 
-# Selected Control Scheme
-control_scheme = 2
-#  1 - PID
-#  2 - LQR
-
 # Sample times and sim length
 t_final      = 10
 
 dt_plant     = 0.001
-dt_control   = 0.001
+dt_control   = 0.01
 
 """   PLANT REPRESENTATION   """
 
@@ -109,9 +121,13 @@ D_discrete = inverse_pendulum_plant_d.D
 
 # Initialize controller
 if control_scheme == 1:   #PID Controller
-    controller = PID(K_P, K_I, K_D, dt=dt_control, antiwindupmode=1)
-    controller.set_control_limit(1)
-    
+    controller = PID(K_P, 
+                     K_I, 
+                     K_D, 
+                     dt = dt_control, 
+                     antiwindupmode = 1,
+                     control_limit = 1)
+        
     # Eliminate spike in control force from start
     controller.set_last_error(-states_l[2][0])
     
@@ -119,7 +135,21 @@ elif control_scheme == 2: #LQR Controller
     K, S, E = control.lqr(A, B, Q, R)
     #K[0,0] = 0 #no constraint on x
     #K[0,1] = 0 #no constraint on x_dot
-    controller = LQR(K)
+    controller = LQR(K, 
+                     max_input = 20, 
+                     max_input_on = False)
+    
+"""   UTILITY FUNCTIONS   """
+
+# Take a state input and add random noise
+def add_noise(states):
+    
+    for i in range(len(states-1)):
+        noise = (random.random()*2 - 1) * noise_val
+        states[i] += noise
+    
+    return states
+    
     
     
 """   SIMULATION   """
@@ -129,7 +159,8 @@ t_plant   = np.arange(0, t_final, dt_plant)
 t_control = np.arange(0, t_final, dt_control)
 
 # Collector for states
-states_coll = [[],[],[],[]]
+states_coll   = [[],[],[],[]]  # real states
+states_coll_n = [[],[],[],[]]  #states w/ noise
 
 # Collector for control force
 control_force_coll = []
@@ -139,13 +170,21 @@ full_step = int(dt_control/dt_plant)
 steps = math.ceil(t_final/dt_control)
 
 for i in range(0, steps):
+    if measure_noise == 1:
+        measurement = add_noise(states_l)
+    else:
+        measurement = states_l
+    
+    
     if control_scheme == 1:   #PID Controller
             # Calculate control action
-        control_force = controller.update(-states_l[2][0])
+        control_force = controller.update(-measurement[2][0])
     elif control_scheme == 2: #LQR Controller
-        control_force = controller.calc_force(states_l)
+        control_force = controller.calc_force( measurement)
             
     control_force_coll = np.append(control_force_coll, control_force)
+    
+    states_coll_n = np.append(states_coll_n, measurement,axis=1)
     
     for i in range(0, full_step):
          # Update states with ss eqs
@@ -191,14 +230,13 @@ axs[0].plot(t_plant, states_coll[:][3], label='theta_dot')
 axs[0].legend(loc='best', shadow=True, framealpha=1)
 
 axs[1].plot(t_control, control_force_coll, label = 'Control Force')
-axs[1].plot(t_plant, -states_coll[:][2], label = 'Error')
+axs[1].plot(t_plant,  -states_coll[:][2],  label = 'Error')
 
 axs[1].legend(loc='best', shadow=True, framealpha=1)
 
 plt.show()
     
     
-
 
 
 
