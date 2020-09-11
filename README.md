@@ -77,8 +77,8 @@ On line 138, there are two parameters for setting a maximum control force for th
 The Kalman Filter has two matrices used in tuning, each associated with noise in the simulation. R is used for the _Measurement Noise_, and Q is used for the _Process Noise_. Q is calculated using a basic model with the equation:
 
 ```
-Q = [ [(dt^4) / 4, (dt^3) / 2],
-      [(dt^3) / 2, (dt^2)]]
+Q = [[(dt^4) / 4, (dt^3) / 2],
+     [(dt^3) / 2, (dt^2)]]
 
 ```
 where dt is the timestep for the estimator. This matrix can be changed to also represent the expected noise from the sensors, where each sensors noise value would be on the diagonal.
