@@ -4,6 +4,12 @@
 Created on Mon Aug 24 13:36:32 2020
 
 @author: jpaine
+
+Simulation of a Cart and Inverted Pendulum System
+
+Includes options for running with either PID or LQR as the controller, 
+adding noise to the sensor reading, and for using a Kalman Filter to 
+estimate velocities.
 """
 
 # Libraries
@@ -17,22 +23,27 @@ import random
 # custom classes
 from PID import PID
 from LQR import LQR
+from kalman_filter import kalman_filter
 
 """   SIMULATION PARAMETERS   """
 # Switches
 
 # Selected Control Scheme
-control_scheme = 2
+control_scheme = 1
 #  1 - PID
 #  2 - LQR
 
 # Noise
-measure_noise = 0
+measure_noise = 1
 #  0 - No Noise
 #  1 - Noise
 
-noise_val = 0.01
+noise_val = 0.002
 
+# Observers
+observer = 1
+#  0 - None
+#  1 - Kalman Filter
 
 # Physical Parameters
 
@@ -55,11 +66,25 @@ K_D = 5
 q11 = 5000
 q33 = 100
 
-r   = 1
+r   = 10
 
 Q = np.diagflat([q11, 0, q33, 0])
 
 R = np.array([r])
+
+# Observer Parameters
+
+# Q - Process Noise
+
+Q_kalman = np.array([[.01, 0, 0, 0],
+              [0, .01, 0, 0],
+              [0, 0, .01, 0],
+              [0, 0, 0, .01]])
+
+# R - Measurement Noise
+
+R_kalman = np.array([[(0.001**4)/4, (0.001**3)/2],
+              [(0.001**3)/2, 0.001**2]])
 
 # Initialize States
 x         = 0.0
@@ -139,6 +164,27 @@ elif control_scheme == 2: #LQR Controller
                      max_input = 20, 
                      max_input_on = False)
     
+"""   OBSERVER REPRESENTATION   """
+
+# Convert to discrete time
+inverse_pendulum_plant_d_kalman = inverse_pendulum_plant.to_discrete(dt_control)
+
+# Extract discrete state matrices
+A_discrete_k = inverse_pendulum_plant_d_kalman.A
+B_discrete_k = inverse_pendulum_plant_d_kalman.B
+C_discrete_k = inverse_pendulum_plant_d_kalman.C
+D_discrete_k = inverse_pendulum_plant_d_kalman.D
+
+# Kalman Filter
+
+kf = kalman_filter(A_discrete_k, B_discrete_k, C_discrete_k, Q_kalman, R_kalman)
+
+# initilize states and covariance
+kf.set_x_last(states)
+kf.set_P_last(np.eye(np.size(A,1)) * noise_val**2)
+
+#kf = kalman_filter(A, B, C, Q, R)
+
 """   UTILITY FUNCTIONS   """
 
 # Take a state input and add random noise
@@ -160,18 +206,30 @@ t_control = np.arange(0, t_final, dt_control)
 
 # Collector for states
 states_coll   = [[],[],[],[]]  # real states
-states_coll_n = [[],[],[],[]]  #states w/ noise
+states_coll_n = [[],[],[],[]]  # states w/ noise
+
+measurement_error = [[],[],[],[]] 
 
 # Collector for control force
 control_force_coll = []
 
+control_force = 0.
 
 full_step = int(dt_control/dt_plant)
 steps = math.ceil(t_final/dt_control)
 
 for i in range(0, steps):
+    
+    # If using noise, add in noise
     if measure_noise == 1:
         measurement = add_noise(states_l)
+        
+        # for for KF, run update to fill in states 
+        if (observer == 1):
+            z = np.array([ [measurement[0,0]], [measurement[2,0]] ])
+            measurement = kf.predict_update(control_force, z)
+            
+    # for no noise, just pass states through
     else:
         measurement = states_l
     
@@ -180,11 +238,13 @@ for i in range(0, steps):
             # Calculate control action
         control_force = controller.update(-measurement[2][0])
     elif control_scheme == 2: #LQR Controller
-        control_force = controller.calc_force( measurement)
+        control_force = controller.calc_force(measurement)
             
     control_force_coll = np.append(control_force_coll, control_force)
     
     states_coll_n = np.append(states_coll_n, measurement,axis=1)
+    
+    measurement_error = np.append(measurement_error, states_l - measurement, axis=1)
     
     for i in range(0, full_step):
          # Update states with ss eqs
@@ -220,7 +280,7 @@ for i in range(0, steps):
 
 # Subplot 1 = states
 # Subplot 2 = control force and error
-fig, axs = plt.subplots(2)
+fig, axs = plt.subplots(3)
 
 axs[0].plot(t_plant, states_coll[:][0], label='x')
 axs[0].plot(t_plant, states_coll[:][1], label='x_dot')
@@ -233,6 +293,16 @@ axs[1].plot(t_control, control_force_coll, label = 'Control Force')
 axs[1].plot(t_plant,  -states_coll[:][2],  label = 'Error')
 
 axs[1].legend(loc='best', shadow=True, framealpha=1)
+
+# axs[2].plot(t_plant, states_coll[:][0], label='x')
+# axs[2].plot(t_control, states_coll_n[:][0], label='x measurement')
+
+# axs[2].plot(t_plant, states_coll[:][2], label='theta')
+# axs[2].plot(t_control, states_coll_n[:][2], label='theta measurement')
+
+axs[2].plot(t_control, measurement_error[:][2])
+
+axs[2].legend(loc='best', shadow=True, framealpha=1)
 
 plt.show()
     
