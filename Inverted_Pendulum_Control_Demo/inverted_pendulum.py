@@ -220,7 +220,7 @@ for i in range(0, steps):
         # for for KF, run update to fill in states
         if observer == 1:
             z = np.array([[measurement[0, 0]], [measurement[2, 0]]])
-            measurement = kf.predict_update(control_force, z)
+            measurement = kf.update(control_force, z)
 
     # for no noise, just pass states through
     else:
