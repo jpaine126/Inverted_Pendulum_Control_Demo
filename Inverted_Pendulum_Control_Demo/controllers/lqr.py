@@ -31,8 +31,8 @@ class LQR:
     def max_input_disable(self):
         self.max_input_on = False
 
-    def calc_force(self, states):
-
+    def update(self, states):
+        """Update method to calculate force from state."""
         control = 0
 
         for i in range(0, len(states)):
