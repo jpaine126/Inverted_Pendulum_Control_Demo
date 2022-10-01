@@ -21,6 +21,7 @@ class PID:
     def __init__(
         self, K_P, K_I, K_D, dt=1, antiwindupmode=0, control_limit=10
     ):
+        self.set_point = 0
         self.K_P = K_P
         self.K_I = K_I
         self.K_D = K_D
@@ -60,7 +61,8 @@ class PID:
 
     " Control Force Update Function "
 
-    def update(self, error):
+    def update(self, states):
+        error = self.set_point - states[2][0]
         integral = self.integrator + error * self.dt
         deriv = (error - self.last_error) / self.dt
 
