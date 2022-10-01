@@ -22,11 +22,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
 
-from kalman_filter import kalman_filter
-from LQR import LQR
-
-# custom classes
-from PID import PID
+from observers import KalmanFilter
+from controllers import LQR
+from controllers import PID
 
 """   SIMULATION PARAMETERS   """
 # Switches
@@ -102,7 +100,7 @@ states_l = np.copy(states)
 # Sample times and sim length
 t_final = 10
 
-dt_plant = 0.0001
+dt_plant = 0.01
 dt_control = 0.1
 
 """   PLANT REPRESENTATION   """
@@ -173,9 +171,7 @@ D_discrete_k = inverse_pendulum_plant_d_kalman.D
 
 # Kalman Filter
 
-kf = kalman_filter(
-    A_discrete_k, B_discrete_k, C_discrete_k, Q_kalman, R_kalman
-)
+kf = KalmanFilter(A_discrete_k, B_discrete_k, C_discrete_k, Q_kalman, R_kalman)
 
 # initilize states and covariance
 kf.set_x_last(states)
