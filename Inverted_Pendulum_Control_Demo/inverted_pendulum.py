@@ -226,11 +226,7 @@ for i in range(0, steps):
     else:
         measurement = states_l
 
-    if control_scheme == 1:  # PID Controller
-        # Calculate control action
-        control_force = controller.update(-measurement[2][0])
-    elif control_scheme == 2:  # LQR Controller
-        control_force = controller.update(measurement)
+    control_force = controller.update(measurement)
 
     control_force_coll = np.append(control_force_coll, control_force)
 
