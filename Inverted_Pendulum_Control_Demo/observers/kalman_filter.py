@@ -4,35 +4,36 @@
 Created on Tue Aug 25 17:28:04 2020
 
 @author: jpaine
-
-Kalman Filter Class
-
-
-F - State Transition Matrix
-B - Control Input Matrix
-H - Observation Matrix
-Q - Covariance of the Process Noise
-R - Covariance of the Measurement Noise
-
-x_pri - a priori state estimate
-P_pri - a priori estimate covariance
-
-z     - measurement
-u     - control force
-
-y_hat - measurement pre-fit residual
-S     - prefir residual covarience
-K     - Kalman gain
-x_post- updated state estimate
-P_post- updated estiamte covariance
-y     - measurement post-fit residual
-
 """
 import numpy as np
 from numpy.linalg import inv
 
 
 class KalmanFilter:
+    """Kalman filter implementation.
+
+    Very basic implementation assuming only position input.
+
+    F - State Transition Matrix
+    B - Control Input Matrix
+    H - Observation Matrix
+    Q - Covariance of the Process Noise
+    R - Covariance of the Measurement Noise
+
+    x_pri - a priori state estimate
+    P_pri - a priori estimate covariance
+
+    z     - measurement
+    u     - control force
+
+    y_hat - measurement pre-fit residual
+    S     - prefir residual covarience
+    K     - Kalman gain
+    x_post- updated state estimate
+    P_post- updated estiamte covariance
+    y     - measurement post-fit residual
+    """
+
     def __init__(self, F, B, H, Q, R):
         self.F = np.array(F)
         self.B = np.array(B)

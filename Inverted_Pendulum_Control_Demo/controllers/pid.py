@@ -1,19 +1,8 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Mon Aug 24 14:03:15 2020
 
 @author: jpaine
-
-PID Controller Class
-
-
-
-Antiwideup Modes:
-    0 - No Antiwindup Scheme
-    
-    1 - Saturate the Integrator Variable
-
 
 """
 
@@ -21,7 +10,17 @@ from math import copysign
 
 
 class PID:
-    def __init__(self, K_P, K_I, K_D, dt=1, antiwindupmode=0, control_limit=10):
+    """PID Controller Class.
+
+    Antiwideup Modes:
+        0 - No Antiwindup Scheme
+
+        1 - Saturate the Integrator Variable
+    """
+
+    def __init__(
+        self, K_P, K_I, K_D, dt=1, antiwindupmode=0, control_limit=10
+    ):
         self.K_P = K_P
         self.K_I = K_I
         self.K_D = K_D

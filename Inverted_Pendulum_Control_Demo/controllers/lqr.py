@@ -1,22 +1,19 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Tue Aug 25 17:28:04 2020
 
 @author: jpaine
-
-LQR Controller Class
-
-This class if for implementing a LQR controller, not for designing one.
-
-
-
 """
 
 from math import copysign
 
 
 class LQR:
+    """LQR Controller Class.
+
+    This class if for implementing a LQR controller, not for designing one.
+    """
+
     def __init__(self, K, max_input=1, max_input_on=False):
         self.K = K
         self.max_input = max_input
