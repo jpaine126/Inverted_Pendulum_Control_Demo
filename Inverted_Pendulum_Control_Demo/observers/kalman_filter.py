@@ -32,7 +32,7 @@ import numpy as np
 from numpy.linalg import inv
 
 
-class kalman_filter:
+class KalmanFilter:
     def __init__(self, F, B, H, Q, R):
         self.F = np.array(F)
         self.B = np.array(B)
@@ -58,7 +58,10 @@ class kalman_filter:
         x_pri = np.matmul(self.F, self.x_last) + self.B * u
 
         # P_k|k-1 = F*P_k-1|k-1*F' + Q
-        P_pri = np.matmul(np.matmul(self.F, self.P_last), np.transpose(self.F)) + self.Q
+        P_pri = (
+            np.matmul(np.matmul(self.F, self.P_last), np.transpose(self.F))
+            + self.Q
+        )
 
         ## Update Step
         # y_k = z_k - H*x_k|k-1
