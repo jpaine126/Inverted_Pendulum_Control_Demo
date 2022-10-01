@@ -48,21 +48,24 @@ class KalmanFilter:
     def set_P_last(self, P):
         self.P_last = P
 
-    def predict_update(self, u, z):
-
-        u = np.array(u)
-        z = np.array(z)
+    def update(self, control_force, measurement):
+        """Update method to calculate states."""
+        control_force = np.array(control_force)
+        measurement = np.array(measurement)
 
         ## Predict Step
         # x_k|k-1 = F*x_k-1|k-1 + B*u
-        x_pri = np.matmul(self.F, self.x_last) + self.B * u
+        x_pri = np.matmul(self.F, self.x_last) + self.B * control_force
 
         # P_k|k-1 = F*P_k-1|k-1*F' + Q
-        P_pri = np.matmul(np.matmul(self.F, self.P_last), np.transpose(self.F)) + self.Q
+        P_pri = (
+            np.matmul(np.matmul(self.F, self.P_last), np.transpose(self.F))
+            + self.Q
+        )
 
         ## Update Step
         # y_k = z_k - H*x_k|k-1
-        y_hat = z - np.matmul(self.H, x_pri)
+        y_hat = measurement - np.matmul(self.H, x_pri)
 
         # S = H*P_k|k-1*H' + R
         S = np.matmul(np.matmul(self.H, P_pri), np.transpose(self.H)) + self.R
