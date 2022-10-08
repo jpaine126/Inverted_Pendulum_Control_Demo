@@ -43,11 +43,8 @@ class KalmanFilter:
         self.x_last = np.zeros([np.size(F, 1), 1])
         self.P_last = np.zeros(np.shape(F))
 
-    def set_x_last(self, x):
-        self.x_last = x
-
-    def set_P_last(self, P):
-        self.P_last = P
+    def __repr__(self):
+        return f"KF({self.F=} {self.B=} {self.H=} {self.Q} {self.R})"
 
     def update(self, control_force, measurement):
         """Update method to calculate states."""
