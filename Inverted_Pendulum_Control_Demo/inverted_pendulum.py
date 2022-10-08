@@ -91,7 +91,7 @@ R_kalman = np.array(
 x = 0.0
 x_dot = 0.0
 theta = 0.0
-theta_dot = 1.0
+theta_dot = 0.5
 states = np.array([[x], [x_dot], [theta], [theta_dot]])
 
 # Placeholders for integration
@@ -100,8 +100,8 @@ states_l = np.copy(states)
 # Sample times and sim length
 t_final = 10
 
-dt_plant = 0.01
-dt_control = 0.1
+dt_plant = 0.001
+dt_control = 0.01
 
 """   PLANT REPRESENTATION   """
 
@@ -148,7 +148,7 @@ if control_scheme == 1:  # PID Controller
     )
 
     # Eliminate spike in control force from start
-    controller.set_last_error(-states_l[2][0])
+    controller.last_error = -states_l[2][0]
 
 elif control_scheme == 2:  # LQR Controller
     K, S, E = control.lqr(A, B, Q, R)
@@ -174,8 +174,8 @@ D_discrete_k = inverse_pendulum_plant_d_kalman.D
 kf = KalmanFilter(A_discrete_k, B_discrete_k, C_discrete_k, Q_kalman, R_kalman)
 
 # initilize states and covariance
-kf.set_x_last(states)
-kf.set_P_last(np.eye(np.size(A, 1)) * noise_val**2)
+kf.x_last = states
+kf.P_last = np.eye(np.size(A, 1)) * noise_val**2
 
 # kf = kalman_filter(A, B, C, Q, R)
 
