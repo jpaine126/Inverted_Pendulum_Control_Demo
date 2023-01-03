@@ -1,16 +1,9 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sat Oct  1 18:02:27 2022
-
-@author: jpaine
-"""
 import control
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import param
-from matplotlib.backends.backend_agg import FigureCanvas
-from matplotlib.figure import Figure
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
 from scipy import signal
 
 from .controllers import LQR, PID
@@ -250,23 +243,75 @@ class ControlDemoParam(param.Parameterized):
         sim.run_sim()
 
         # make plots
-        # fig, axs = plt.subplots(3)
-        fig = Figure(figsize=(4, 5))
-        axs = [fig.add_subplot(3, 1, idx) for idx in range(1, 4)]
-        axs[0].plot(sim.t_control, sim.state_history[:][0], label="x")
-        axs[0].plot(sim.t_control, sim.state_history[:][1], label="x_dot")
-        axs[0].plot(sim.t_control, sim.state_history[:][2], label="theta")
-        axs[0].plot(sim.t_control, sim.state_history[:][3], label="theta_dot")
+        fig = make_subplots(rows=3, shared_xaxes="columns")
+        fig.add_trace(
+            go.Scatter(
+                x=sim.t_control,
+                y=sim.state_history[:][0],
+                name="x",
+            ),
+            row=1,
+            col=1,
+        )
 
-        axs[0].legend(loc="best", shadow=True, framealpha=1)
+        fig.add_trace(
+            go.Scatter(
+                x=sim.t_control,
+                y=sim.state_history[:][1],
+                name="x_dot",
+            ),
+            row=1,
+            col=1,
+        )
 
-        axs[1].plot(sim.t_control, sim.control_force_history, label="Control Force")
-        axs[1].plot(sim.t_control, sim.state_history[:][2], label="Error")
+        fig.add_trace(
+            go.Scatter(
+                x=sim.t_control,
+                y=sim.state_history[:][2],
+                name="theta",
+            ),
+            row=1,
+            col=1,
+        )
 
-        axs[1].legend(loc="best", shadow=True, framealpha=1)
+        fig.add_trace(
+            go.Scatter(
+                x=sim.t_control,
+                y=sim.state_history[:][3],
+                name="theta_dot",
+            ),
+            row=1,
+            col=1,
+        )
 
-        axs[2].plot(sim.t_control, sim.state_history[:][2])
+        fig.add_trace(
+            go.Scatter(
+                x=sim.t_control,
+                y=sim.control_force_history,
+                name="Control Force",
+            ),
+            row=2,
+            col=1,
+        )
 
-        axs[2].legend(loc="best", shadow=True, framealpha=1)
+        fig.add_trace(
+            go.Scatter(
+                x=sim.t_control,
+                y=sim.state_history[:][2],
+                name="Error",
+            ),
+            row=2,
+            col=1,
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=sim.t_control,
+                y=sim.state_history[:][2],
+                name="Error",
+            ),
+            row=3,
+            col=1,
+        )
 
         return fig

@@ -17,7 +17,7 @@ if __name__ == "__main__":
     logging.info("Starting dashboard")
     obj = ControlDemoParam()
 
-    plot = pn.pane.Matplotlib(obj.view())
+    plot = pn.pane.Plotly(obj.view(), width=800, height=800)
 
     inputs = []
 
