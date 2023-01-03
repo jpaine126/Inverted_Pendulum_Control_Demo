@@ -28,9 +28,7 @@ class Plant:
         elif propogation_type.lower() == "rk4":
             self.update = self._update_rk4
         else:
-            raise ValueError(
-                f"Unsupported propogation type {propogation_type}."
-            )
+            raise ValueError(f"Unsupported propogation type {propogation_type}.")
         if dt is not None:
             self._from_continuous(A, B, C, D, dt)
         else:

@@ -1,2 +1,2 @@
-from .pass_through import PassThroughObserver
 from .kalman_filter import KalmanFilter
+from .pass_through import PassThroughObserver

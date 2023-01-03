@@ -17,14 +17,11 @@ import random
 
 import control
 import matplotlib.pyplot as plt
-
 # Libraries
 import numpy as np
-from scipy import signal
-
+from controllers import LQR, PID
 from observers import KalmanFilter
-from controllers import LQR
-from controllers import PID
+from scipy import signal
 
 """   SIMULATION PARAMETERS   """
 # Switches
@@ -143,9 +140,7 @@ D_discrete = inverse_pendulum_plant_d.D
 
 # Initialize controller
 if control_scheme == 1:  # PID Controller
-    controller = PID(
-        K_P, K_I, K_D, dt=dt_control, antiwindupmode=1, control_limit=1
-    )
+    controller = PID(K_P, K_I, K_D, dt=dt_control, antiwindupmode=1, control_limit=1)
 
     # Eliminate spike in control force from start
     controller.last_error = -states_l[2][0]
@@ -159,9 +154,7 @@ elif control_scheme == 2:  # LQR Controller
 """   OBSERVER REPRESENTATION   """
 
 # Convert to discrete time
-inverse_pendulum_plant_d_kalman = inverse_pendulum_plant.to_discrete(
-    dt_control
-)
+inverse_pendulum_plant_d_kalman = inverse_pendulum_plant.to_discrete(dt_control)
 
 # Extract discrete state matrices
 A_discrete_k = inverse_pendulum_plant_d_kalman.A
@@ -232,9 +225,7 @@ for i in range(0, steps):
 
     states_coll_n = np.append(states_coll_n, measurement, axis=1)
 
-    measurement_error = np.append(
-        measurement_error, states_l - measurement, axis=1
-    )
+    measurement_error = np.append(measurement_error, states_l - measurement, axis=1)
 
     for i in range(0, full_step):
         # Update states with ss eqs
