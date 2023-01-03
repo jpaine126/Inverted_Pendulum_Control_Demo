@@ -1,12 +1,12 @@
+"""Run the control test bench dashboard."""
+
+
 import logging
 
 import panel as pn
 import panel.widgets as pnw
-import param
 
 from .sim_parameters import ControlDemoParam
-
-# pn.extension("ipywidgets")
 
 
 def run_sim(event):
@@ -86,10 +86,4 @@ if __name__ == "__main__":
 
     dashboard = pn.Row(pn.Column(*inputs), plot)
 
-    # dashboard = pn.Param(
-    #     obj.param,
-    #     widgets={
-    #         "control_scheme": pn.widgets.RadioButtonGroup,
-    #     },
-    # )
     pn.serve(dashboard)

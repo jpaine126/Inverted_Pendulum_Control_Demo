@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import math
 
 import numpy as np
@@ -79,7 +78,7 @@ class MainSim:
         state = self.plant.state
         control_force = self.controller.control_force
 
-        # fir bigger control steps
+        # for bigger control steps
         for i in range(0, self.steps):
             self.control_step(state, control_force)
             state = self.state_history[:, -1]
