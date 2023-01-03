@@ -144,4 +144,4 @@ dt_control    = 0.01   % Size of Time Step for Controller Update - s
 - [x] Multiple Control Algorithms, including Linear Quadratic Regulator.
 - [x] Adding noise and multiple types of observers to the system.
 - [ ] Changing the plant simulation to use the full non-linear equations of motion.
-- [ ] A graphical interface in QT that will allow the user to select the control algorithm from a drop down menu, and will have text input for changing gains, parameters, sample time, and initial conditions.
+- [x] A graphical interface in panel that will allow the user to select the control algorithm from a drop down menu, and will have text input for changing gains, parameters, sample time, and initial conditions.
