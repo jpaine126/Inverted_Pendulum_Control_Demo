@@ -2,8 +2,8 @@ import control
 import numpy as np
 import pandas as pd
 import param
-from plotly.subplots import make_subplots
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from scipy import signal
 
 from .controllers import LQR, PID
@@ -16,7 +16,7 @@ observer_schemes = ["Kalman Filter", "None"]
 
 
 class ControlDemoParam(param.Parameterized):
-    """Parameters for the control dashboard."""
+    """Parameters for the inverted pendulum control dashboard."""
 
     control_scheme = param.Selector(control_schemes, "LQR")
     observer_scheme = param.Selector(observer_schemes, "Kalman Filter")
