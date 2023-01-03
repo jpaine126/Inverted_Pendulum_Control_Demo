@@ -50,16 +50,12 @@ class PID:
         deriv = (error - self.last_error) / self.dt
 
         if self.antiwindup_mode == 0:
-            control_force = (
-                error * self.K_P + integral * self.K_I + deriv * self.K_D
-            )
+            control_force = error * self.K_P + integral * self.K_I + deriv * self.K_D
 
         elif self.antiwindup_mode == 1:
             if abs(integral) > self.control_limit:
                 integral = copysign(self.control_limit, integral)
-            control_force = (
-                error * self.K_P + integral * self.K_I + deriv * self.K_D
-            )
+            control_force = error * self.K_P + integral * self.K_I + deriv * self.K_D
 
         self.last_error = error
         self.integrator = integral

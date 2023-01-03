@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import math
+
 import numpy as np
 from numpy.random import random_sample
 
@@ -66,8 +67,7 @@ class MainSim:
         else:
             adjusted_state = state
 
-        measurement = np.matmul(self.plant.C, adjusted_state)
-        measurement = self.observer.update(control_force, measurement)
+        measurement = self.observer.update(control_force, adjusted_state)
 
         control_force = self.controller.update(measurement)
 

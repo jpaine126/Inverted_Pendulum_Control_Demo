@@ -46,8 +46,10 @@ class KalmanFilter:
     def __repr__(self):
         return f"KF({self.F=} {self.B=} {self.H=} {self.Q} {self.R})"
 
-    def update(self, control_force, measurement):
+    def update(self, control_force, state):
         """Update method to calculate states."""
+        measurement = np.matmul(self.H, state)
+
         control_force = np.array(control_force)
         measurement = np.array(measurement)
 
@@ -56,10 +58,7 @@ class KalmanFilter:
         x_pri = np.matmul(self.F, self.x_last) + self.B * control_force
 
         # P_k|k-1 = F*P_k-1|k-1*F' + Q
-        P_pri = (
-            np.matmul(np.matmul(self.F, self.P_last), np.transpose(self.F))
-            + self.Q
-        )
+        P_pri = np.matmul(np.matmul(self.F, self.P_last), np.transpose(self.F)) + self.Q
 
         ## Update Step
         # y_k = z_k - H*x_k|k-1
