@@ -117,11 +117,7 @@ class ControlDemoParam(param.Parameterized):
         length_arm = self.param.inspect_value("length_arm")
         cart_friction = self.param.inspect_value("cart_friction")
         gravity = self.param.inspect_value("gravity")
-        arm_moment = (
-            (1 / 3)
-            * mass_arm
-            * (length_arm ** 2)
-        )
+        arm_moment = (1 / 3) * mass_arm * (length_arm**2)
 
         P = arm_moment * (mass_cart + mass_arm) + (
             mass_cart * mass_arm * length_arm**2
@@ -150,7 +146,7 @@ class ControlDemoParam(param.Parameterized):
             ]
         ).reshape((4, 1))
 
-        plant=Plant(
+        plant = Plant(
             self.mass_cart,
             self.mass_arm,
             self.length_arm,
