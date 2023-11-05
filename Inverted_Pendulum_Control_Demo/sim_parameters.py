@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from scipy import signal
 
-from .controllers import LQR, PID
+from .controllers import LQR, PID, NoControl
 from .main_sim import MainSim
 from .observers import KalmanFilter, PassThroughObserver
 from .plant import Plant
@@ -91,8 +91,8 @@ class ControlDemoParam(param.Parameterized):
 
     x_initial = param.Number(0.0, bounds=(-10.0, 10.0))
     x_dot_initial = param.Number(0.0, bounds=(-10.0, 10.0))
-    theta_initial = param.Number(0.0, bounds=(-180.0, 180.0))
-    theta_dot_initial = param.Number(0.5, bounds=(-100.0, 100.0))
+    phi_initial = param.Number(np.pi, bounds=(-np.pi, np.pi))
+    phi_dot_initial = param.Number(0.0, bounds=(-10.0, 10.0))
 
     t_final = param.Number(10, bounds=(0.0, 50))
     dt_plant = param.Number(0.001, bounds=(0.001, 0.5))
@@ -100,37 +100,28 @@ class ControlDemoParam(param.Parameterized):
 
     # derived params
 
-    arm_moment = param.Number(np.nan)
-
     plant_A = param.Array(np.array([]))
 
     plant_B = param.Array(np.array([]))
 
-    @param.depends("mass_arm", "length_arm", watch=True, on_init=True)
-    def calc_arm_moment(self):
-        P = (
-            1
-            / 3
-            * self.param.inspect_value("mass_arm")
-            * (self.param.inspect_value("length_arm") ** 2)
-        )
-        self.param.set_param(arm_moment=P)
-
     @param.depends(
-        "arm_moment",
         "mass_cart",
         "cart_friction",
         "gravity",
         watch=True,
         on_init=True,
     )
-    def calc_plant(self):
-        arm_moment = self.param.inspect_value("arm_moment")
+    def calc_linear_plant(self):
         mass_cart = self.param.inspect_value("mass_cart")
         mass_arm = self.param.inspect_value("mass_arm")
         length_arm = self.param.inspect_value("length_arm")
         cart_friction = self.param.inspect_value("cart_friction")
         gravity = self.param.inspect_value("gravity")
+        arm_moment = (
+            (1 / 3)
+            * mass_arm
+            * (length_arm ** 2)
+        )
 
         P = arm_moment * (mass_cart + mass_arm) + (
             mass_cart * mass_arm * length_arm**2
@@ -154,18 +145,18 @@ class ControlDemoParam(param.Parameterized):
             [
                 self.x_initial,
                 self.x_dot_initial,
-                self.theta_initial,
-                self.theta_dot_initial,
+                self.phi_initial,
+                self.phi_dot_initial,
             ]
         ).reshape((4, 1))
 
-        plant = Plant(
-            self.plant_A,
-            self.plant_B,
-            self.plant_C,
-            self.plant_D,
+        plant=Plant(
+            self.mass_cart,
+            self.mass_arm,
+            self.length_arm,
+            self.cart_friction,
+            self.gravity,
             state,
-            dt=self.dt_plant,
         )
 
         # get observer and controller
@@ -224,6 +215,8 @@ class ControlDemoParam(param.Parameterized):
                 self.lqr_r,
             )
             controller = LQR(K)
+        elif self.control_scheme.lower() == "none":
+            controller = NoControl()
         else:
             raise ValueError(f"Unsupported controller '{self.control_scheme}'.")
 
@@ -268,7 +261,7 @@ class ControlDemoParam(param.Parameterized):
             go.Scatter(
                 x=sim.t_control,
                 y=sim.state_history[:][2],
-                name="theta",
+                name="phi",
             ),
             row=1,
             col=1,
@@ -278,7 +271,7 @@ class ControlDemoParam(param.Parameterized):
             go.Scatter(
                 x=sim.t_control,
                 y=sim.state_history[:][3],
-                name="theta_dot",
+                name="phi_dot",
             ),
             row=1,
             col=1,
@@ -294,11 +287,14 @@ class ControlDemoParam(param.Parameterized):
             col=1,
         )
 
+        position_error = sim.state_history[:][0] - sim.measurement_history[:][0]
+        angle_error = sim.state_history[:][2] - sim.measurement_history[:][2]
+
         fig.add_trace(
             go.Scatter(
                 x=sim.t_control,
-                y=sim.state_history[:][2],
-                name="Error",
+                y=position_error,
+                name="Position Error",
             ),
             row=2,
             col=1,
@@ -307,8 +303,8 @@ class ControlDemoParam(param.Parameterized):
         fig.add_trace(
             go.Scatter(
                 x=sim.t_control,
-                y=sim.state_history[:][2],
-                name="Error",
+                y=angle_error,
+                name="Angle Error",
             ),
             row=3,
             col=1,
