@@ -11,6 +11,7 @@ from .main_sim import MainSim
 from .observers import KalmanFilter, PassThroughObserver
 from .plant import Plant
 
+
 control_schemes = ["LQR", "PID", "None"]
 observer_schemes = ["Kalman Filter", "None"]
 
@@ -91,7 +92,7 @@ class ControlDemoParam(param.Parameterized):
 
     x_initial = param.Number(0.0, bounds=(-10.0, 10.0))
     x_dot_initial = param.Number(0.0, bounds=(-10.0, 10.0))
-    phi_initial = param.Number(np.pi, bounds=(-np.pi, np.pi))
+    phi_initial = param.Number(0.5, bounds=(-np.pi, np.pi))
     phi_dot_initial = param.Number(0.0, bounds=(-10.0, 10.0))
 
     t_final = param.Number(10, bounds=(0.0, 50))
@@ -99,7 +100,6 @@ class ControlDemoParam(param.Parameterized):
     dt_control = param.Number(0.01, bounds=(0.001, 0.5))
 
     # derived params
-
     plant_A = param.Array(np.array([]))
 
     plant_B = param.Array(np.array([]))
