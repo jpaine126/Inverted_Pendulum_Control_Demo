@@ -2,6 +2,7 @@ import math
 
 import numpy as np
 from numpy.random import random_sample
+from scipy.integrate import solve_ivp
 
 
 class MainSim:
@@ -85,9 +86,21 @@ class MainSim:
             control_force = self.control_force_history[-1]
 
             # for plant propogation in between control steps
-            for i in range(0, self.full_step):
-                self.plant.update(control_force)
-                state = self.plant.state
+            def wrapper(t, y, force):
+                deriv = self.plant.derivative(y, force)
+                return deriv
+
+            a = solve_ivp(
+                wrapper,
+                t_span=(0, self.dt_control),
+                y0=state,
+                args=(control_force,),
+                method="LSODA",
+                min_step=0.0001,
+            )
+
+            state = np.atleast_2d(a.y[:, -1]).T
+            self.plant.state = state
 
 
 def get_noise(noise_mag, size=(4, 1)):

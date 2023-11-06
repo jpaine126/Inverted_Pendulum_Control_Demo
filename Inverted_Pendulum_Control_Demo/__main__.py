@@ -42,8 +42,8 @@ if __name__ == "__main__":
         pn.Card(
             pnw.FloatSlider.from_param(obj.param.x_initial),
             pnw.FloatSlider.from_param(obj.param.x_dot_initial),
-            pnw.FloatSlider.from_param(obj.param.theta_initial),
-            pnw.FloatSlider.from_param(obj.param.theta_dot_initial),
+            pnw.FloatSlider.from_param(obj.param.phi_initial),
+            pnw.FloatSlider.from_param(obj.param.phi_dot_initial),
             title="Initial Conditions",
         )
     )
