@@ -115,11 +115,12 @@ B2 = (I + M_Arm * (length**2)) / P
 B4 = (M_Arm * length) / P
 
 
-A = np.array([[0, 1, 0, 0], [0, A22, A23, 0], [0, 0, 0, 1], [0, A42, A43, 0]])
+# TODO
+A = np.array(...)
 
-B = np.array([[0], [B2], [0], [B4]])
+B = np.array(...)
 
-C = np.array([[1, 0, 0, 0], [0, 0, 1, 0]])
+C = np.array(...)
 
 D = np.array([[0], [0]])
 
@@ -167,7 +168,7 @@ print("A_d:", inverse_pendulum_plant_d.A)
 
 # Kalman Filter
 
-kf = KalmanFilter(A_discrete_k, B_discrete_k, C_discrete_k, Q_kalman, R_kalman)
+kf = KalmanFilter(...) # TODO
 
 # initilize states and covariance
 kf.x_last = states
