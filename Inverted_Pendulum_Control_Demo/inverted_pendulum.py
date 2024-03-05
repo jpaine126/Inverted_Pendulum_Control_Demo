@@ -162,6 +162,9 @@ B_discrete_k = inverse_pendulum_plant_d_kalman.B
 C_discrete_k = inverse_pendulum_plant_d_kalman.C
 D_discrete_k = inverse_pendulum_plant_d_kalman.D
 
+# print("A:", A)
+print("A_d:", inverse_pendulum_plant_d.A)
+
 # Kalman Filter
 
 kf = KalmanFilter(A_discrete_k, B_discrete_k, C_discrete_k, Q_kalman, R_kalman)
@@ -212,14 +215,17 @@ for i in range(0, steps):
 
         # for for KF, run update to fill in states
         if observer == 1:
-            z = np.array([[measurement[0, 0]], [measurement[2, 0]]])
-            measurement = kf.update(control_force, z)
+            # z = np.array([[measurement[0, 0]], [measurement[2, 0]]]) ## This was wrong in the source code
+            measurement = kf.update(control_force, measurement)
 
     # for no noise, just pass states through
     else:
         measurement = states_l
 
     control_force = controller.update(measurement)
+
+    # print("u:", control_force)
+    # print("B:", B_discrete)
 
     control_force_coll = np.append(control_force_coll, control_force)
 
