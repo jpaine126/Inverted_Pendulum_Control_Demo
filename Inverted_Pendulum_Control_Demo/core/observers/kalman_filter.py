@@ -1,15 +1,10 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Aug 25 17:28:04 2020
-
-@author: jpaine
-"""
 import numpy as np
 from numpy.linalg import inv
 
+from .. import Observer
 
-class KalmanFilter:
+
+class KalmanFilter(Observer):
     """Kalman filter implementation.
 
     Very basic implementation assuming only position input.

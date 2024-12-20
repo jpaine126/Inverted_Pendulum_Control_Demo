@@ -1,14 +1,8 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Aug 25 17:28:04 2020
-
-@author: jpaine
-"""
-
 from math import copysign
 
+from .. import Controller
 
-class LQR:
+class LQR(Controller):
     """LQR Controller Class.
 
     This class if for implementing a LQR controller, not for designing one.

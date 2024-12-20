@@ -1,20 +1,12 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Aug 24 14:03:15 2020
-
-@author: jpaine
-
-"""
-
 from math import copysign
 
+from .. import Controller
 
-class PID:
+class PID(Controller):
     """PID Controller Class.
 
     Antiwideup Modes:
         0 - No Antiwindup Scheme
-
         1 - Saturate the Integrator Variable
     """
 

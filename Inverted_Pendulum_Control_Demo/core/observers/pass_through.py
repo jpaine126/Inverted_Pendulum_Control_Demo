@@ -1,12 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sat Oct  1 16:23:06 2022
+from .. import Observer
 
-@author: jpaine
-"""
-
-
-class PassThroughObserver:
+class PassThroughObserver(Observer):
     """Place holder for a pass through observer that copies the whole state."""
 
     def update(self, control_force, measurement):
