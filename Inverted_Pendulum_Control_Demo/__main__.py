@@ -70,25 +70,15 @@ def run_sim(event):
     else:
         raise ValueError(f"Unsupported observer '{obj.observer_scheme}'.")
 
-    if controller_scheme.value == "pid":
-        controller = PID(
-            obj.pid_p,
-            obj.pid_i,
-            obj.pid_d,
-            obj.dt_control,
-            last_error=-state[2][0],
-        )
-        controller.last_error = -state[2][0]
-    elif controller_scheme.value == "LQR 1":
-        controller = LQR1(
-            plant,
-            controller_params["lqr_q"].value,
-            controller_params["lqr_r"].value,
-        )
-    elif controller_scheme.value == "none":
-        controller = NoControl()
-    else:
-        raise ValueError(f"Unsupported controller '{obj.control_scheme}'.")
+    selected_controller = TestSetup._implemented_controllers[controller_scheme.value]
+    needed_controller_params = selected_controller.params
+    param_values = {
+        p: controller_params[p].value for p in needed_controller_params.keys()
+    }
+    controller = selected_controller(
+        plant,
+        **param_values,
+    )
 
     # run sim
     sim = MainSim(
