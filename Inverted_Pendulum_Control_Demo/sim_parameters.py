@@ -6,11 +6,11 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from scipy import signal
 
-from .controllers import LQR, PID, NoControl
+from .core.controllers import PID, NoControl
+from .core.observers import KalmanFilter, PassThroughObserver
 from .main_sim import MainSim
-from .observers import KalmanFilter, PassThroughObserver
 from .plant import Plant
-
+from .test_setups.lqr1 import LQR1
 
 control_schemes = ["LQR", "PID", "None"]
 observer_schemes = ["Kalman Filter", "None"]
@@ -19,8 +19,6 @@ observer_schemes = ["Kalman Filter", "None"]
 class ControlDemoParam(param.Parameterized):
     """Parameters for the inverted pendulum control dashboard."""
 
-    control_scheme = param.Selector(control_schemes, "LQR")
-    observer_scheme = param.Selector(observer_schemes, "Kalman Filter")
     include_noise = param.Boolean(True)
     noise_value = param.Number(0.002, bounds=(0.0, None))
 
@@ -37,16 +35,6 @@ class ControlDemoParam(param.Parameterized):
     pid_p = param.Number(100, bounds=(0.0, None))
     pid_i = param.Number(1, bounds=(0.0, None))
     pid_d = param.Number(5, bounds=(0.0, None))
-
-    lqr_q = param.DataFrame(
-        pd.DataFrame(
-            np.diagflat([5000, 0, 100, 0]), index=pd.RangeIndex(0, 4, name="Q")
-        ),
-    )
-    # lqr_r = param.Number(10)
-    lqr_r = param.DataFrame(
-        pd.DataFrame([10], index=pd.RangeIndex(0, 1, name="R")),
-    )
 
     F_kalman = param.DataFrame(
         pd.DataFrame(
@@ -99,43 +87,6 @@ class ControlDemoParam(param.Parameterized):
     dt_plant = param.Number(0.001, bounds=(0.001, 0.5))
     dt_control = param.Number(0.01, bounds=(0.001, 0.5))
 
-    # derived params
-    plant_A = param.Array(np.array([]))
-
-    plant_B = param.Array(np.array([]))
-
-    @param.depends(
-        "mass_cart",
-        "cart_friction",
-        "gravity",
-        watch=True,
-        on_init=True,
-    )
-    def calc_linear_plant(self):
-        mass_cart = self.param.inspect_value("mass_cart")
-        mass_arm = self.param.inspect_value("mass_arm")
-        length_arm = self.param.inspect_value("length_arm")
-        cart_friction = self.param.inspect_value("cart_friction")
-        gravity = self.param.inspect_value("gravity")
-        arm_moment = (1 / 3) * mass_arm * (length_arm**2)
-
-        P = arm_moment * (mass_cart + mass_arm) + (
-            mass_cart * mass_arm * length_arm**2
-        )
-        A22 = (-(arm_moment + mass_arm * (length_arm**2)) * cart_friction) / P
-        A23 = ((mass_arm**2) * gravity * (length_arm**2)) / P
-        A42 = (-(mass_arm * length_arm * cart_friction)) / P
-        A43 = (mass_arm * gravity * length_arm * (mass_cart + mass_arm)) / P
-
-        A = np.array([[0, 1, 0, 0], [0, A22, A23, 0], [0, 0, 0, 1], [0, A42, A43, 0]])
-
-        B2 = (arm_moment + mass_arm * (length_arm**2)) / P
-        B4 = (mass_arm * length_arm) / P
-
-        B = np.array([[0], [B2], [0], [B4]])
-
-        self.param.set_param(plant_A=A, plant_B=B)
-
     def view(self):
         state = np.array(
             [
@@ -157,13 +108,6 @@ class ControlDemoParam(param.Parameterized):
 
         # get observer and controller
         if self.observer_scheme.lower() == "kalman filter":
-            # observer = KalmanFilter(
-            #     parameters.F_kalman,
-            #     parameters.B_kalman,
-            #     parameters.H_kalman,
-            #     parameters.Q_kalman,
-            #     parameters.R_kalman,
-            # )
             inverse_pendulum_plant = signal.StateSpace(
                 self.plant_A,
                 self.plant_B,
@@ -203,14 +147,12 @@ class ControlDemoParam(param.Parameterized):
                 last_error=-state[2][0],
             )
             controller.last_error = -state[2][0]
-        elif self.control_scheme.lower() == "lqr":
-            K, _, _ = control.lqr(
-                self.plant_A,
-                self.plant_B,
+        elif self.control_scheme.lower() == "LQR 1":
+            controller = LQR1(
+                plant,
                 self.lqr_q,
                 self.lqr_r,
             )
-            controller = LQR(K)
         elif self.control_scheme.lower() == "none":
             controller = NoControl()
         else:
@@ -270,16 +212,6 @@ class ControlDemoParam(param.Parameterized):
                 name="phi_dot",
             ),
             row=1,
-            col=1,
-        )
-
-        fig.add_trace(
-            go.Scatter(
-                x=sim.t_control,
-                y=sim.control_force_history,
-                name="Control Force",
-            ),
-            row=2,
             col=1,
         )
 

@@ -1,5 +1,6 @@
 from .. import Observer
 
+
 class PassThroughObserver(Observer):
     """Place holder for a pass through observer that copies the whole state."""
 

@@ -17,6 +17,7 @@ import random
 
 import control
 import matplotlib.pyplot as plt
+
 # Libraries
 import numpy as np
 from controllers import LQR, PID
@@ -80,9 +81,7 @@ Q_kalman = np.array(
 
 # R - Measurement Noise
 
-R_kalman = np.array(
-    [[(0.001**4) / 4, (0.001**3) / 2], [(0.001**3) / 2, 0.001**2]]
-)
+R_kalman = np.array([[(0.001**4) / 4, (0.001**3) / 2], [(0.001**3) / 2, 0.001**2]])
 
 # Initialize States
 x = 0.0
@@ -173,6 +172,7 @@ kf.P_last = np.eye(np.size(A, 1)) * noise_val**2
 # kf = kalman_filter(A, B, C, Q, R)
 
 """   UTILITY FUNCTIONS   """
+
 
 # Take a state input and add random noise
 def add_noise(states):
