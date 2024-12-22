@@ -22,8 +22,8 @@ class BasicKalmanFilter(ObserverTestSetup, name="Basic Kalman Filter"):
         ),
         R=pd.DataFrame(
             [
-                [(0.001**4) / 4, (0.001**3) / 2],
-                [(0.001**3) / 2, 0.001**2],
+                [0.1],
+                [0.05],
             ],
             index=pd.RangeIndex(0, 2, name="R"),
         ),
