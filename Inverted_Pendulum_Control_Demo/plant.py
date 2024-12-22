@@ -20,6 +20,21 @@ class Plant(PlantProtocol):
     actual propagation because a constant dt is assumed.
     """
 
+    def derivative(self, state: np.ndarray, force: np.ndarray) -> np.ndarray:
+        """Derivatives of full EQs of motion.
+
+        Used for numerical integration for non-linear simulation.
+        """
+
+    def linear_state_space(self):
+        """Linear state space equations in continuous form.
+
+        Not used in simulatino loop. Available for controllers and observers that want
+        to design to the linear model.
+        """
+
+
+class InvertedPendulum(PlantProtocol):
     def __init__(
         self,
         mass_cart,

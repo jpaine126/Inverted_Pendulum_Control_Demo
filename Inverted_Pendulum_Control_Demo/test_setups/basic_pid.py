@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from ..core.controllers import PID
 from ..plant import PlantProtocol
+from ..primitives.controllers import PID
 from . import ControllerTestSetup
 
 

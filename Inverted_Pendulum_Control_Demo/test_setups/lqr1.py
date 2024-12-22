@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from ..core.controllers import LQR
 from ..plant import PlantProtocol
+from ..primitives.controllers import LQR
 from . import ControllerTestSetup
 
 

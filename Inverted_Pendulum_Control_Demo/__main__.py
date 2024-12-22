@@ -6,13 +6,11 @@ import numpy as np
 import pandas as pd
 import panel as pn
 import panel.widgets as pnw
-import param
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
-from scipy import signal
 
 from .main_sim import MainSim
-from .plant import Plant
+from .plant import InvertedPendulum
 from .sim_parameters import ControlDemoParam
 from .test_setups import TestSetup
 
@@ -27,7 +25,7 @@ def run_sim(event):
         ]
     ).reshape((4, 1))
 
-    plant = Plant(
+    plant = InvertedPendulum(
         obj.mass_cart,
         obj.mass_arm,
         obj.length_arm,

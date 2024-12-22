@@ -1,10 +1,10 @@
-from scipy import signal
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+from scipy import signal
 
-from ..core.observers import KalmanFilter
 from ..plant import PlantProtocol
+from ..primitives.observers import KalmanFilter
 from . import ObserverTestSetup
 
 
