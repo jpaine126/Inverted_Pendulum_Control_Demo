@@ -15,8 +15,6 @@ from .main_sim import MainSim
 from .plant import Plant
 from .sim_parameters import ControlDemoParam
 from .test_setups import TestSetup
-from .test_setups.lqr1 import LQR1
-from .test_setups.pass_through_observer import PassThroughObserver
 
 
 def run_sim(event):
@@ -39,44 +37,27 @@ def run_sim(event):
     )
 
     # get observer and controller
-    if observer_scheme.value == "kalman filter":
-        inverse_pendulum_plant = signal.StateSpace(
-            obj.plant_A,
-            obj.plant_B,
-            obj.plant_C,
-            obj.plant_D,
-        )
-        inverse_pendulum_plant_d_kalman = inverse_pendulum_plant.to_discrete(
-            obj.dt_control
-        )
-
-        # Extract discrete state matrices
-        A_discrete_k = inverse_pendulum_plant_d_kalman.A
-        B_discrete_k = inverse_pendulum_plant_d_kalman.B
-        C_discrete_k = inverse_pendulum_plant_d_kalman.C
-        D_discrete_k = inverse_pendulum_plant_d_kalman.D
-
-        observer = KalmanFilter(
-            A_discrete_k,
-            B_discrete_k,
-            C_discrete_k,
-            obj.Q_kalman,
-            obj.R_kalman,
-        )
-        observer.x_last = state
-        observer.P_last = np.eye(np.size(obj.plant_A, 1)) * obj.noise_value**2
-    elif observer_scheme.value in {"Pass Through Observer", "none"}:
-        observer = PassThroughObserver()
-    else:
-        raise ValueError(f"Unsupported observer '{obj.observer_scheme}'.")
+    selected_observer = TestSetup._implemented_observers[observer_scheme.value]
+    needed_observer_params = selected_observer.params
+    param_values = {
+        p: all_observer_params[observer_scheme.value][p].value
+        for p in needed_observer_params.keys()
+    }
+    observer = selected_observer(
+        plant,
+        obj,
+        **param_values,
+    )
 
     selected_controller = TestSetup._implemented_controllers[controller_scheme.value]
     needed_controller_params = selected_controller.params
     param_values = {
-        p: controller_params[p].value for p in needed_controller_params.keys()
+        p: all_controller_params[controller_scheme.value][p].value
+        for p in needed_controller_params.keys()
     }
     controller = selected_controller(
         plant,
+        obj,
         **param_values,
     )
 
@@ -226,47 +207,26 @@ if __name__ == "__main__":
         )
     )
 
+    all_controller_params = {}
     for name, controller in TestSetup._implemented_controllers.items():
         controller_params = generate_widgets_from_params(controller.params)
+        all_controller_params[name] = controller_params
         controllers = pn.Card(
             title=name,
         )
         controllers.extend(controller_params.values())
         inputs.append(controllers)
 
+    all_observer_params = {}
     for name, observer in TestSetup._implemented_observers.items():
         observer_params = generate_widgets_from_params(observer.params)
+        observers = pn.Card(
+            title=name,
+        )
         if observer_params:
-            observers = pn.Card(
-                title=name,
-            )
+            all_observer_params[name] = observer_params
             observers.extend(observer_params.values())
             inputs.append(observers)
-
-    # inputs.append(
-    #     pn.Card(
-    #         pnw.FloatSlider.from_param(obj.param.pid_p),
-    #         pnw.FloatSlider.from_param(obj.param.pid_i),
-    #         pnw.FloatSlider.from_param(obj.param.pid_d),
-    #         title="PID Params",
-    #     )
-    # )
-
-    # inputs.append(
-    #     pn.Card(
-    #         pnw.DataFrame.from_param(obj.param.lqr_q, width=300),
-    #         pnw.DataFrame.from_param(obj.param.lqr_r, width=300),
-    #         title="LQR Params",
-    #     )
-    # )
-
-    # inputs.append(
-    #     pn.Card(
-    #         pnw.DataFrame.from_param(obj.param.Q_kalman, width=300),
-    #         pnw.DataFrame.from_param(obj.param.R_kalman, width=300),
-    #         title="KF Params",
-    #     )
-    # )
 
     dashboard = pn.Row(pn.Column(*inputs), plot)
 

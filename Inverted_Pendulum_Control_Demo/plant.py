@@ -86,4 +86,8 @@ class Plant(PlantProtocol):
 
         B = np.array([[0], [B2], [0], [B4]])
 
-        return A, B
+        C = np.array([[1, 0, 0, 0], [0, 0, 1, 0]])
+
+        D = np.array([[0], [0]])
+
+        return A, B, C, D

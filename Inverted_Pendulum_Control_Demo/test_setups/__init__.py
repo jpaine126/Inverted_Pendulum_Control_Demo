@@ -32,7 +32,7 @@ class TestSetup(Protocol):
                 dict_to_update = cls._implemented_controllers
             dict_to_update[name] = cls
 
-    def __init__(self, plant: PlantProtocol, **kwargs):
+    def __init__(self, plant: PlantProtocol, sim_params, **kwargs):
         """Protocol for classes used as controllers and oberservers.
 
         Used for containing logic for parameters and architecture for specific
@@ -71,3 +71,9 @@ class ControllerTestSetup(TestSetup, is_abstract=True):
 
     def update(self, state: np.ndarray) -> float:
         """Calcualte output force from states."""
+
+
+# import all test setups here for registration
+from .lqr1 import LQR1
+from .pass_through_observer import PassThroughObserver
+from .basic_kalman_filter import BasicKalmanFilter

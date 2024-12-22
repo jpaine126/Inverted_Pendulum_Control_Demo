@@ -1,7 +1,6 @@
 import control
 import numpy as np
 import pandas as pd
-import param
 import plotly.graph_objects as go
 
 from ..core.controllers import LQR
@@ -18,7 +17,7 @@ class LQR1(ControllerTestSetup, name="LQR 1"):
         lqr_r=pd.DataFrame([10.0], index=pd.RangeIndex(0, 1, name="R")),
     )
 
-    def __init__(self, plant: PlantProtocol, lqr_q, lqr_r):
+    def __init__(self, plant: PlantProtocol, sim_params, lqr_q, lqr_r):
         plant_A, plant_B, *_ = plant.linear_state_space()
         K, _, _ = control.lqr(
             plant_A,
