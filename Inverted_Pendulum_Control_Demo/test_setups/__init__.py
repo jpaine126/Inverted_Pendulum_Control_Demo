@@ -74,6 +74,7 @@ class ControllerTestSetup(TestSetup, is_abstract=True):
 
 
 # import all test setups here for registration
+from .basic_pid import BasicPID
 from .lqr1 import LQR1
 from .pass_through_observer import PassThroughObserver
 from .basic_kalman_filter import BasicKalmanFilter

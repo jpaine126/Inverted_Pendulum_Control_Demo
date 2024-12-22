@@ -14,10 +14,6 @@ class ControlDemoParam(param.Parameterized):
     cart_friction = param.Number(0.1, bounds=(0.0, None))
     gravity = param.Number(9.8, bounds=(0.0, None))
 
-    pid_p = param.Number(100, bounds=(0.0, None))
-    pid_i = param.Number(1, bounds=(0.0, None))
-    pid_d = param.Number(5, bounds=(0.0, None))
-
     x_initial = param.Number(0.0, bounds=(-10.0, 10.0))
     x_dot_initial = param.Number(0.0, bounds=(-10.0, 10.0))
     phi_initial = param.Number(0.5, bounds=(-np.pi, np.pi))

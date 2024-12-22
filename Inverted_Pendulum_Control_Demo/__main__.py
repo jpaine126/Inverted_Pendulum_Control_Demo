@@ -39,6 +39,7 @@ def run_sim(event):
     # get observer and controller
     selected_observer = TestSetup._implemented_observers[observer_scheme.value]
     needed_observer_params = selected_observer.params
+
     param_values = {
         p: all_observer_params[observer_scheme.value][p].value
         for p in needed_observer_params.keys()
@@ -145,8 +146,14 @@ def run_sim(event):
 
 
 def to_widget(param):
-    if param.__class__ is pd.DataFrame:
+    if isinstance(param, pd.DataFrame):
         return pnw.Tabulator(param)
+    elif isinstance(param, float):
+        return pnw.FloatInput(value=param)
+    elif isinstance(param, float):
+        return pnw.IntInput(value=param)
+    elif isinstance(param, bool):
+        return pnw.Toggle(value=param)
     else:
         raise TypeError(f"Param {param} of type {type(param)} is not supported")
 
