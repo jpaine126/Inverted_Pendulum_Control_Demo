@@ -4,29 +4,29 @@ import numpy as np
 from numpy.random import random_sample
 from scipy.integrate import solve_ivp
 
+from .plant import PlantProtocol
+from .test_setups import ControllerTestSetup, ObserverTestSetup
+
 
 class MainSim:
     """Simulation main execution loop."""
 
     def __init__(
         self,
-        dt_plant,
-        dt_control,
-        t_final,
-        controller,
-        observer,
-        plant,
-        measurement_noise,
-        measurement_noise_value,
-        initial_conditions,
+        dt_plant: float,
+        dt_control: float,
+        t_final: float,
+        controller: ControllerTestSetup,
+        observer: ObserverTestSetup,
+        plant: PlantProtocol,
+        measurement_noise: bool,
+        measurement_noise_value: float,
+        initial_conditions: np.ndarray,
     ):
-        self.dt_plant = dt_plant
         self.dt_control = dt_control
 
-        self.t_plant = np.arange(0, t_final, dt_plant)
         self.t_control = np.arange(0, t_final, dt_control)
 
-        self.full_step = int(dt_control / dt_plant)
         self.steps = math.ceil(t_final / dt_control)
 
         self.controller = controller
@@ -60,7 +60,7 @@ class MainSim:
             self.control_force_history, control_force
         )
 
-    def control_step(self, state, control_force):
+    def control_step(self, state, control_force, time):
         """Single sim control step."""
         if self.measure_noise:
             adjusted_state = state + get_noise(self.measurement_noise_value)
@@ -69,7 +69,7 @@ class MainSim:
 
         measurement = self.observer.update(control_force, adjusted_state)
 
-        control_force = self.controller.update(measurement)
+        control_force = self.controller.update(measurement, time)
 
         self.record(state, adjusted_state, measurement, control_force)
 
@@ -77,11 +77,11 @@ class MainSim:
         """Run whole sim."""
         # collect initial conditions
         state = self.plant.state
-        control_force = self.controller.control_force
+        control_force = 0
 
         # for bigger control steps
-        for i in range(0, self.steps):
-            self.control_step(state, control_force)
+        for i, time in enumerate(self.t_control):
+            self.control_step(state, control_force, time)
             state = self.state_history[:, -1]
             control_force = self.control_force_history[-1]
 
