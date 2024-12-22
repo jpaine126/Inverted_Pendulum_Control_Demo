@@ -213,25 +213,52 @@ if __name__ == "__main__":
     )
 
     all_controller_params = {}
+    controller_cards = []
     for name, controller in TestSetup._implemented_controllers.items():
         controller_params = generate_widgets_from_params(controller.params)
         all_controller_params[name] = controller_params
-        controllers = pn.Card(
+        controller = pn.Card(
             title=name,
         )
-        controllers.extend(controller_params.values())
-        inputs.append(controllers)
+        controller_cards.append(controller)
+        controller.extend(controller_params.values())
+        inputs.append(controller)
 
     all_observer_params = {}
+    observer_cards = []
     for name, observer in TestSetup._implemented_observers.items():
         observer_params = generate_widgets_from_params(observer.params)
-        observers = pn.Card(
+        observer = pn.Card(
             title=name,
         )
+        observer_cards.append(observer)
         if observer_params:
             all_observer_params[name] = observer_params
-            observers.extend(observer_params.values())
-            inputs.append(observers)
+            observer.extend(observer_params.values())
+            inputs.append(observer)
+
+    def hide_all_but_one(card_list, selector):
+        """Provide a function that hides all widgets in a list except the one whose
+        title matches the value of the selector."""
+
+        def hide_all_but_one_helper(event):
+            for w in card_list:
+                if selector.value == w.title:
+                    w.visible = True
+                else:
+                    w.visible = False
+
+        return hide_all_but_one_helper
+
+    controller_scheme.param.watch(
+        hide_all_but_one(controller_cards, controller_scheme),
+        "value",
+    )
+
+    observer_scheme.param.watch(
+        hide_all_but_one(observer_cards, observer_scheme),
+        "value",
+    )
 
     dashboard = pn.Row(pn.Column(*inputs), plot)
 
