@@ -8,6 +8,7 @@ from . import ControllerTestSetup
 
 
 class BasicPID(ControllerTestSetup, name="Basic PID"):
+    """Single PID controller on pendulum angle only."""
 
     params = dict(
         pid_p=100.0,

@@ -1,18 +1,9 @@
-# -*- coding: utf-8 -*-
 from typing import Protocol
 
 import numpy as np
 
 
 class PlantProtocol(Protocol):
-    def derivative(self, state: np.ndarray, force: np.ndarray) -> np.ndarray:
-        """Derivatives of full EQs of motion. Used for higher fidelity sim."""
-
-    def linear_state_space(self):
-        """Linear state space equations in continuous form."""
-
-
-class Plant(PlantProtocol):
     """Plant class to handle physics and integration.
 
     All state matrices will be kept in discrete form. If dt is provided, the

@@ -3,7 +3,7 @@ import param
 
 
 class ControlDemoParam(param.Parameterized):
-    """Parameters for the inverted pendulum control dashboard."""
+    """General parameters for the inverted pendulum simulation."""
 
     include_noise = param.Boolean(True)
     noise_value = param.Number(0.002, bounds=(0.0, None))
