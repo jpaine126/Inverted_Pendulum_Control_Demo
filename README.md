@@ -16,25 +16,9 @@ The inverted pendulum is a classic example of an unstable dynamic system. The go
 
 ## Running the Simulation
 
-Run the simulation by running the main file inverted_pendulum.py. Listed in the next few sections are the different parameters that can be changed in the simulation. After the simulation is done running, the states and the control force/error are plotted.
+Run the simulation by running `python -m Inverted_Pendulum_Control_Demo` from the directory root. Listed in the next few sections are the different parameters that can be changed in the simulation. After the simulation is done running, the states and the control force/error are plotted.
 
-### Files and Libraries
 
-```
-Included Files:
-inverted_pendulum.py
-PID.py
-LQR.py
-kalman_filter.py
-```
-
-```
-Libraries:
-Numpy
-Scipy
-Python Control Systems Library
-Matlibplot
-```
 ### Physical Paramters
 
 ```
@@ -143,5 +127,5 @@ dt_control    = 0.01   % Size of Time Step for Controller Update - s
 
 - [x] Multiple Control Algorithms, including Linear Quadratic Regulator.
 - [x] Adding noise and multiple types of observers to the system.
-- [ ] Changing the plant simulation to use the full non-linear equations of motion.
+- [x] Changing the plant simulation to use the full non-linear equations of motion.
 - [x] A graphical interface in panel that will allow the user to select the control algorithm from a drop down menu, and will have text input for changing gains, parameters, sample time, and initial conditions.
