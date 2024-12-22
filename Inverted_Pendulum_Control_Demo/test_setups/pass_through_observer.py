@@ -1,14 +1,14 @@
 import numpy as np
 
-from ..core.observers import PassThroughObserver as PassThroughObserverPrimitive
 from . import ObserverTestSetup
 
 
 class PassThroughObserver(ObserverTestSetup, name="Pass Through Observer"):
+    """Observer that simply returns the whole true state as the measurement."""
+
     params = dict()
 
-    def __init__(self, *args, **kwargs):
-        self.observer = PassThroughObserverPrimitive()
+    def __init__(self, *args, **kwargs): ...
 
     def update(self, control_force: float, state: np.ndarray) -> np.ndarray:
-        return self.observer.update(control_force, state)
+        return state

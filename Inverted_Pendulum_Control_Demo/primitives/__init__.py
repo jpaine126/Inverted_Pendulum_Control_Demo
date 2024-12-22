@@ -1,3 +1,5 @@
+"""Primitive implementations of controller and observer algorithms."""
+
 from typing import Protocol
 
 import numpy as np
