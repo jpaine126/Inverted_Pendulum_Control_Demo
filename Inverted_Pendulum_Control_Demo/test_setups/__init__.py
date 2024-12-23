@@ -18,17 +18,17 @@ class TestSetup(Protocol):
 
     params: dict[str, param.Parameter]
 
-    def __init_subclass__(cls, name=None, is_abstract=False, **kwargs):
+    def __init_subclass__(cls, setup_name=None, is_abstract=False, **kwargs):
         """Register implementations of this class when subclassed.
 
         Args:
-            name: Name of the Test Case implementation. Required for all non-abstract classes.
+            setup_name: Name of the Test Case implementation. Required for all non-abstract classes.
             is_abstract: Whether or not this subclass is abstract. Used to prevent
                 registration for subclasses that aren't meant to be a final implementation.
         """
         cls._is_abstract = is_abstract
 
-        if name is None and not is_abstract:
+        if setup_name is None and not is_abstract:
             raise TypeError(
                 "TestSetup.__init_subclass__() missing 1 required positional argument: 'name'"
             )
@@ -41,7 +41,7 @@ class TestSetup(Protocol):
                 dict_to_update = cls._implemented_controllers
             else:
                 raise ValueError(f"Invalid _dynamic_type {cls_type} provided for {cls}")
-            dict_to_update[name] = cls
+            dict_to_update[setup_name] = cls
 
     def __init__(self, plant: PlantProtocol, sim_params: ControlDemoParam, **kwargs):
         """Protocol for classes used as controllers and observers.

@@ -7,7 +7,7 @@ from ..primitives.controllers import PID
 from . import ControllerTestSetup
 
 
-class BasicPID(ControllerTestSetup, name="Basic PID"):
+class BasicPID(ControllerTestSetup, setup_name="Basic PID"):
     """Single PID controller on pendulum angle only."""
 
     params = dict(

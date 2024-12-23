@@ -8,7 +8,7 @@ from ..primitives.controllers import LQR
 from . import ControllerTestSetup
 
 
-class LQR1(ControllerTestSetup, name="LQR 1"):
+class LQR1(ControllerTestSetup, setup_name="LQR 1"):
 
     params = dict(
         lqr_q=pd.DataFrame(
