@@ -8,7 +8,7 @@ from ..primitives.observers import KalmanFilter
 from . import ObserverTestSetup
 
 
-class BasicKalmanFilter(ObserverTestSetup, name="Basic Kalman Filter"):
+class BasicKalmanFilter(ObserverTestSetup, setup_name="Basic Kalman Filter"):
 
     params = dict(
         Q=pd.DataFrame(
