@@ -8,20 +8,29 @@ from .plant import PlantProtocol
 from .test_setups import ControllerTestSetup, ObserverTestSetup
 
 
+def value_or_full_like(value, array_like, fill_value):
+    if value is None:
+        return np.full_like(array_like, fill_value)
+    else:
+        return value
+
+
 class MainSim:
     """Simulation main execution loop."""
 
     def __init__(
         self,
-        dt_plant: float,
-        dt_control: float,
-        t_final: float,
         controller: ControllerTestSetup,
         observer: ObserverTestSetup,
         plant: PlantProtocol,
-        measurement_noise: bool,
-        measurement_noise_value: float,
         initial_conditions: np.ndarray,
+        measurement_noise_value: float,
+        dt_control: float = 0.02,
+        measurement_noise: bool = False,
+        t_final: float = 10.0,
+        sensor_discretize: np.ndarray = None,
+        sensor_discretize_offset: np.ndarray = None,
+        sensor_bias: np.ndarray = None,
     ):
         self.dt_control = dt_control
 
@@ -38,6 +47,15 @@ class MainSim:
 
         self.initial_conditions = initial_conditions
         self.state = initial_conditions
+
+        self.sensor_discretize = value_or_full_like(
+            sensor_discretize, self.initial_conditions, 0.0
+        )
+        self.sensor_discretize_offset = value_or_full_like(
+            sensor_discretize_offset, self.initial_conditions, 0.0
+        )
+
+        self.sensor_bias = value_or_full_like(sensor_bias, self.initial_conditions, 0.0)
 
         self.state_history = [[], [], [], []]  # real states
         self.adjusted_state_history = [[], [], [], []]  # states w/ noise
@@ -63,15 +81,31 @@ class MainSim:
     def control_step(self, state, control_force, time):
         """Single sim control step."""
         if self.measure_noise:
-            adjusted_state = state + get_noise(self.measurement_noise_value)
+            noisy_state = state + get_noise(self.measurement_noise_value)
         else:
-            adjusted_state = state
+            noisy_state = state
 
-        measurement = self.observer.update(control_force, adjusted_state)
+        noisy_state = noisy_state.reshape((-1,))
+        bin_size = self.sensor_discretize.reshape((-1,))
+        state_signs = np.sign(noisy_state)
+        abs_noisy_state = np.abs(noisy_state)
+
+        discretized_data = (
+            (abs_noisy_state // bin_size) * state_signs
+        ) * bin_size + self.sensor_discretize_offset.reshape((-1,))
+        dont_discretize = bin_size == 0
+        discretized_data[dont_discretize] = noisy_state[dont_discretize]
+        discretized_data = discretized_data.reshape((-1, 1))
+
+        biased_data = discretized_data + self.sensor_bias
+
+        final_data = biased_data
+
+        measurement = self.observer.update(control_force, final_data)
 
         control_force = self.controller.update(measurement, time)
 
-        self.record(state, adjusted_state, measurement, control_force)
+        self.record(state, final_data, measurement, control_force)
 
     def run_sim(self):
         """Run whole sim."""
