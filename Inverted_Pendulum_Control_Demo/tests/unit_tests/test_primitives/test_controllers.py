@@ -10,9 +10,6 @@ CONTROLLER_TEST_CASES = [RAMP_TRAJECTORY]
 
 
 class TestPID:
-    def test_init(self):
-        pid = controllers.PID(1, 1, 1)
-
     def test_update_p(self):
         """Test update method proportional logic only"""
         pid = controllers.PID(1, 0, 0, set_point=0)
