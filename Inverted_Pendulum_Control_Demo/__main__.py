@@ -62,15 +62,17 @@ def run_sim(event):
 
     # run sim
     sim = MainSim(
-        obj.dt_plant,
-        obj.dt_control,
-        obj.t_final,
-        controller,
-        observer,
-        plant,
-        obj.include_noise,
-        obj.noise_value,
-        state,
+        dt_control=obj.dt_control,
+        t_final=obj.t_final,
+        controller=controller,
+        observer=observer,
+        plant=plant,
+        measurement_noise=obj.include_noise,
+        measurement_noise_value=obj.noise_value,
+        initial_conditions=state,
+        sensor_discretize=obj.discretize_bin_size,
+        sensor_discretize_offset=obj.discretize_offset,
+        sensor_bias=obj.sensor_bias,
     )
 
     sim.run_sim()
@@ -182,11 +184,13 @@ if __name__ == "__main__":
         pn.Card(
             controller_scheme,
             observer_scheme,
+            pnw.FloatSlider.from_param(obj.param.t_final),
+            pnw.FloatInput.from_param(obj.param.dt_control),
             pnw.Toggle.from_param(obj.param.include_noise),
             pnw.FloatInput.from_param(obj.param.noise_value),
-            pnw.FloatSlider.from_param(obj.param.t_final),
-            pnw.FloatInput.from_param(obj.param.dt_plant),
-            pnw.FloatInput.from_param(obj.param.dt_control),
+            pnw.ArrayInput.from_param(obj.param.discretize_bin_size),
+            pnw.ArrayInput.from_param(obj.param.discretize_offset),
+            pnw.ArrayInput.from_param(obj.param.sensor_bias),
             title="Sim Params",
         )
     )
