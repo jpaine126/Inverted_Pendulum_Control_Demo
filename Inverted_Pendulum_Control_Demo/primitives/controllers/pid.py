@@ -20,15 +20,16 @@ class PID(Controller):
         last_error=0,
         antiwindupmode=0,
         control_limit=10,
+        set_point=0,
     ):
-        self.set_point = 0
+        self.set_point = set_point
         self.K_P = K_P
         self.K_I = K_I
         self.K_D = K_D
         self.dt = dt
         self.last_error = last_error
         self.integrator = 0
-        self.control_limit = control_limit
+        self.control_limit = abs(control_limit)
         self.antiwindup_mode = antiwindupmode
         self.control_force = 0
 
@@ -36,19 +37,17 @@ class PID(Controller):
         """Class print statement."""
         return f"PID({self.K_P=}, {self.K_I=}, {self.K_D=}, {self.dt=}, {self.last_error=})"
 
-    def update(self, states):
+    def update(self, input):
         """Update method to calculate force from state."""
-        error = self.set_point - states[2][0]
+        error = self.set_point - input
         integral = self.integrator + error * self.dt
         deriv = (error - self.last_error) / self.dt
 
-        if self.antiwindup_mode == 0:
-            control_force = error * self.K_P + integral * self.K_I + deriv * self.K_D
-
-        elif self.antiwindup_mode == 1:
+        if self.antiwindup_mode == 1:
             if abs(integral) > self.control_limit:
                 integral = copysign(self.control_limit, integral)
-            control_force = error * self.K_P + integral * self.K_I + deriv * self.K_D
+
+        control_force = error * self.K_P + integral * self.K_I + deriv * self.K_D
 
         self.last_error = error
         self.integrator = integral

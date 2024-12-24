@@ -23,7 +23,7 @@ class BasicPID(ControllerTestSetup, setup_name="Basic PID"):
         self.control_history = []
 
     def update(self, states, time):
-        force = self.controller.update(states)
+        force = self.controller.update(states[2][0])
         self.control_history.append((time, force))
         return force
 
