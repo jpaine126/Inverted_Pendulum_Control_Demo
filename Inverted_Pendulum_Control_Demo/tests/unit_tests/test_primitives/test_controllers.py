@@ -73,3 +73,18 @@ class TestPID:
         pid = controllers.PID(0, 1, 0, set_point=0, antiwindupmode=1, control_limit=10)
         force = pid.update(point)
         assert abs(force) == min(abs(point), pid.control_limit)
+
+
+class TestLQR:
+    @pytest.mark.parametrize(
+        "state",
+        [
+            np.array([1]),
+            np.array([1, 1]),
+            np.array([1, 1, 1]),
+        ],
+    )
+    def test_update(self, state):
+        lqr = controllers.LQR(np.atleast_2d(state))
+        force = lqr.update(state.reshape((-1, 1)))
+        assert np.isscalar(force)
