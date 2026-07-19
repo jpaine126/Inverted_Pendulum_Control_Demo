@@ -36,8 +36,10 @@ class LQR1(ControllerTestSetup, setup_name="LQR 1"):
 
     def plot(self):
         plot_data = np.array(self.control_history)
-        return go.Scatter(
-            x=plot_data[:, 0],
-            y=plot_data[:, 1],
-            name="Control Force",
-        )
+        return [
+            go.Scatter(
+                x=plot_data[:, 0],
+                y=plot_data[:, 1],
+                name="Control Force",
+            )
+        ]

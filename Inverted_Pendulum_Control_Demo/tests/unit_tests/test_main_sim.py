@@ -246,3 +246,52 @@ class TestMainSimControlStep:
         sim.control_step(state, 0.0, 0.0)
         final_data = observer.update.call_args[0][1]
         assert_allclose(final_data, state)
+
+
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+class TestMainSimPlantRecord:
+    """Tests that control_step records state history on the plant."""
+
+    def test_plant_record_called_with_time_and_state(self):
+        sim, _, _ = _make_sim(measurement_noise=False)
+        state = np.array([[1.0], [2.0], [3.0], [4.0]])
+        sim.control_step(state, 0.0, 7.5)
+        call_args = sim.plant.record.call_args
+        # plant.record(time, state)
+        assert call_args[0][0] == 7.5
+        assert_allclose(call_args[0][1], state)
+
+    def test_plant_record_called_each_control_step(self):
+        sim, _, _ = _make_sim(measurement_noise=False)
+        state = np.array([[1.0], [2.0], [3.0], [4.0]])
+        sim.control_step(state, 0.0, 1.0)
+        sim.control_step(state, 0.0, 2.0)
+        sim.control_step(state, 0.0, 3.0)
+        assert sim.plant.record.call_count == 3
+
+    def test_plant_record_not_called_outside_control_step(self):
+        sim, _, _ = _make_sim()
+        # Without calling control_step, plant.record should not have been called
+        sim.plant.record.assert_not_called()
+
+
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+class TestMainSimObserverTimeArg:
+    """Tests that observer.update receives the time argument."""
+
+    def test_observer_update_receives_time(self):
+        sim, _, observer = _make_sim(measurement_noise=False)
+        state = np.array([[1.0], [2.0], [3.0], [4.0]])
+        sim.control_step(state, 0.0, 4.2)
+        call_args = observer.update.call_args
+        # observer.update(control_force, final_data, time)
+        assert call_args[0][0] == 0.0
+        assert_allclose(call_args[0][1], state)
+        assert call_args[0][2] == 4.2
+
+    def test_observer_update_called_with_three_positional_args(self):
+        sim, _, observer = _make_sim(measurement_noise=False)
+        state = np.array([[1.0], [2.0], [3.0], [4.0]])
+        sim.control_step(state, 1.0, 0.5)
+        call_args = observer.update.call_args
+        assert len(call_args[0]) == 3

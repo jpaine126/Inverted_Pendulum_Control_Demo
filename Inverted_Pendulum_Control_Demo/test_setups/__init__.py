@@ -1,6 +1,6 @@
 """Final implemented designs of controllers and observers."""
 
-from typing import Literal, Protocol
+from typing import List, Literal, Protocol
 
 import numpy as np
 import param
@@ -71,22 +71,30 @@ class TestSetup(Protocol):
 
         """
 
-    def update(self): ...
+    def plot(self) -> List[go.Scatter]:
+        """Return a list of plotly Scatter traces for the dashboard.
 
-    def plot(self) -> go.Figure: ...
+        Implementations should append (time, value) pairs in ``update()`` and
+        return one or more Scatter traces here. Returning a list (even of one
+        trace) keeps the dashboard assembly uniform across plant/observer/controller.
+        """
+
+    def update(self): ...
 
 
 class ObserverTestSetup(TestSetup, is_abstract=True):
     _dynamic_type = "observer"
 
-    def update(self, control_force: float, state: np.ndarray) -> np.ndarray:
+    def update(
+        self, control_force: float, state: np.ndarray, time: float
+    ) -> np.ndarray:
         """Calculate filtered states from measured states and inputs."""
 
 
 class ControllerTestSetup(TestSetup, is_abstract=True):
     _dynamic_type = "controller"
 
-    def update(self, state: np.ndarray) -> float:
+    def update(self, state: np.ndarray, time: float) -> float:
         """Calculate output force from states."""
 
 
