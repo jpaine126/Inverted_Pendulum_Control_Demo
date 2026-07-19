@@ -77,72 +77,45 @@ def run_sim(event):
 
     sim.run_sim()
 
-    # make plots
-    fig = make_subplots(rows=3, shared_xaxes="columns")
-    fig.add_trace(
-        go.Scatter(
-            x=sim.t_control,
-            y=sim.state_history[:][0],
-            name="x",
-        ),
-        row=1,
-        col=1,
+    # build main time-series figure from plant/observer/controller plot() methods
+    fig = make_subplots(
+        rows=3,
+        shared_xaxes="columns",
+        subplot_titles=("States", "Control Force", "Error"),
     )
 
-    fig.add_trace(
-        go.Scatter(
-            x=sim.t_control,
-            y=sim.state_history[:][1],
-            name="x_dot",
-        ),
-        row=1,
-        col=1,
-    )
+    for trace in plant.plot():
+        fig.add_trace(trace, row=1, col=1)
 
-    fig.add_trace(
-        go.Scatter(
-            x=sim.t_control,
-            y=sim.state_history[:][2],
-            name="phi",
-        ),
-        row=1,
-        col=1,
-    )
+    for trace in observer.plot():
+        fig.add_trace(trace, row=1, col=1)
 
-    fig.add_trace(
-        go.Scatter(
-            x=sim.t_control,
-            y=sim.state_history[:][3],
-            name="phi_dot",
-        ),
-        row=1,
-        col=1,
-    )
+    for trace in controller.plot():
+        fig.add_trace(trace, row=2, col=1)
 
-    position_error = sim.state_history[:][0] - sim.measurement_history[:][0]
-    angle_error = sim.state_history[:][2] - sim.measurement_history[:][2]
-
-    fig.add_trace(
-        go.Scatter(
-            x=sim.t_control,
-            y=position_error,
-            name="Position Error",
-        ),
-        row=2,
-        col=1,
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=sim.t_control,
-            y=angle_error,
-            name="Angle Error",
-        ),
-        row=3,
-        col=1,
-    )
+    # error traces: true state (plant) minus estimated state (observer)
+    plant_states = np.array(plant.state_history)
+    observer_states = np.array(observer.estimate_history)
+    t = np.array(plant.t_history)
+    if len(plant_states) and len(observer_states) and len(t):
+        n = min(len(plant_states), len(observer_states), len(t))
+        position_error = plant_states[:n, 0] - observer_states[:n, 0]
+        angle_error = plant_states[:n, 2] - observer_states[:n, 2]
+        fig.add_trace(
+            go.Scatter(x=t[:n], y=position_error, name="Position Error"),
+            row=3,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(x=t[:n], y=angle_error, name="Angle Error"),
+            row=3,
+            col=1,
+        )
 
     plot.object = fig
+
+    # animated pendulum scene from the plant
+    anim_plot.object = plant.animate()
 
 
 def to_widget(param):
@@ -167,6 +140,7 @@ if __name__ == "__main__":
     obj = ControlDemoParam()
 
     plot = pn.pane.Plotly(go.Figure(), width=800, height=800)
+    anim_plot = pn.pane.Plotly(go.Figure(), width=800, height=500)
 
     inputs = []
 
@@ -264,6 +238,6 @@ if __name__ == "__main__":
         "value",
     )
 
-    dashboard = pn.Row(pn.Column(*inputs), plot)
+    dashboard = pn.Row(pn.Column(*inputs), pn.Column(plot, anim_plot))
 
     pn.serve(dashboard)

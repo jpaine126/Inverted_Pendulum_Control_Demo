@@ -101,11 +101,12 @@ class MainSim:
 
         final_data = biased_data
 
-        measurement = self.observer.update(control_force, final_data)
+        measurement = self.observer.update(control_force, final_data, time)
 
         control_force = self.controller.update(measurement, time)
 
         self.record(state, final_data, measurement, control_force)
+        self.plant.record(time, state)
 
     def run_sim(self):
         """Run whole sim."""

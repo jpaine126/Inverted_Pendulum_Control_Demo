@@ -65,6 +65,28 @@ class BasicKalmanFilter(ObserverTestSetup, setup_name="Basic Kalman Filter"):
         observer.P_last = np.eye(np.size(A, 1)) * sim_params.noise_value**2
 
         self.observer = observer
+        self.estimate_history: list = []
+        self.t_history: list = []
 
-    def update(self, control_force: float, state: np.ndarray) -> np.ndarray:
-        return self.observer.update(control_force, state)
+    def update(
+        self, control_force: float, state: np.ndarray, time: float
+    ) -> np.ndarray:
+        estimate = self.observer.update(control_force, state)
+        self.estimate_history.append(np.asarray(estimate).reshape((-1,)).copy())
+        self.t_history.append(float(time))
+        return estimate
+
+    def plot(self):
+        """Return traces of the estimated states vs time.
+
+        Only the measured/estimated position (x) and angle (phi) are returned
+        so they can be overlaid with the plant's true-state traces.
+        """
+        if not self.estimate_history:
+            return []
+        estimates = np.array(self.estimate_history)
+        t = np.array(self.t_history)
+        return [
+            go.Scatter(x=t, y=estimates[:, 0], name="x (est)"),
+            go.Scatter(x=t, y=estimates[:, 2], name="phi (est)"),
+        ]
