@@ -21,17 +21,6 @@ dev = [
     "isort",
 ]
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-# Ensure your build target utilizes the hook
-[tool.hatch.build.hooks.custom]
-
-[tool.hatch.version]
-path = "Inverted_Pendulum_Control_Demo/__init__.py"
-
 [tool.semantic_release]
 version_variable = [
     "Inverted_Pendulum_Control_Demo/__init__.py:__version__",
@@ -41,7 +30,7 @@ upload_to_pypi = false
 upload_to_release = true
 allow_zero_version = true
 assets = ["CITATION.cff"]
-build_command = "hatch build"
+build_command = "python -m build && bash scripts/update_cff.sh"
 
 [tool.semantic_release.commit_parser_options]
 allowed_tags = ["build", "chore", "ci", "docs", "feat", "fix", "perf", "refactor", "style", "test"]

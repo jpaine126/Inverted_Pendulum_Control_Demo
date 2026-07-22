@@ -10,8 +10,10 @@ jobs:
         with:
           fetch-depth: 0 # Fetches all history for all branches and tags
 
-      - name: Install Hatch
-        uses: pypa/hatch@install
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
       - name: Setup | Force release branch to be at workflow sha
         run: |
