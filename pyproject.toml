@@ -11,7 +11,7 @@ dependencies = [
     "plotly",
     "panel",
 ]
-dynamic = ["version"]
+version = "0.1.0"
 
 [dependency-groups]
 dev = [
@@ -22,9 +22,11 @@ dev = [
 ]
 
 [tool.semantic_release]
-version_variable = [
+version_toml = ["pyproject.toml:project.version"]
+version_variables = [
     "Inverted_Pendulum_Control_Demo/__init__.py:__version__",
     "CITATION.cff:version",
+
 ]
 upload_to_pypi = false
 upload_to_release = true
