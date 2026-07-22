@@ -1,0 +1,38 @@
+[project]
+name = "Inverted_Pendulum_Control_Demo"
+description = "A test bench for exploring control theory on an inverted pendulum"
+requires-python = ">=3.10"
+dependencies = [
+    "control",
+    "numpy",
+    "pandas",
+    "scipy",
+    "slycot",
+    "plotly",
+    "panel",
+]
+dynamic = ["version"]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "black",
+    "isort",
+]
+
+[tool.semantic_release]
+version_variable = [
+    "Inverted_Pendulum_Control_Demo/__init__.py:__version__",
+    "CITATION.cff:version",
+]
+upload_to_pypi = false
+upload_to_release = true
+allow_zero_version = true
+assets = ["CITATION.cff"]
+build_command = "bash scripts/update_cff.sh"
+
+[tool.semantic_release.commit_parser_options]
+allowed_tags = ["build", "chore", "ci", "docs", "feat", "fix", "perf", "refactor", "style", "test"]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
