@@ -1,6 +1,7 @@
 name: Test Build
 
-on: push
+on:
+  workflow_call:
 
 jobs:
   test-build:
@@ -13,7 +14,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Setup | Force release branch to be at workflow sha
         run: |
