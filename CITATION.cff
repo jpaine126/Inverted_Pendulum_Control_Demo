@@ -4,6 +4,6 @@ authors:
 - family-names: "Paine"
   given-names: "Jeffrey"
 title: "Control Test Bench"
-version: 0.0.1
-date-released: 2022-10-1
+version: 0.1.0
+date-released: 2026-07-22
 url: "https://github.com/jpaine126/Inverted_Pendulum_Control_Demo"
