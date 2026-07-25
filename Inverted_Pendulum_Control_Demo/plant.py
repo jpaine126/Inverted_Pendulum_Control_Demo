@@ -1,5 +1,5 @@
 import math
-from typing import List, Protocol
+from typing import Protocol
 
 import numpy as np
 from plotly import graph_objects as go
@@ -33,18 +33,20 @@ class PlantProtocol(Protocol):
         record for plotting and animation after the sim has run.
         """
 
-    def plot(self) -> List[go.Scatter]:
-        """Time-series traces of the plant's states.
+    def plot(self) -> dict[str, go.Figure]:
+        """Time-series figures of the plant's states.
 
-        Returns a list of plotly Scatter traces (x, x_dot, phi, phi_dot) vs time
-        for inclusion in the dashboard's main figure.
+        Returns a dict mapping a figure name to a plotly ``Figure``. Each
+        ``Figure`` holds traces of (x, x_dot, phi, phi_dot) vs time for the
+        dashboard's Plant pane. An empty history yields an empty dict.
         """
 
-    def animate(self) -> go.Figure:
-        """Animated figure of the plant's motion.
+    def animate(self) -> dict[str, go.Figure]:
+        """Animated figures of the plant's motion.
 
-        Returns a plotly Figure with frames showing the cart and pendulum arm
-        over the recorded history.
+        Returns a dict mapping a figure name to a plotly ``Figure`` with frames
+        showing the cart and pendulum arm over the recorded history. An empty
+        history yields an empty dict.
         """
 
 
@@ -145,18 +147,26 @@ class InvertedPendulum(PlantProtocol):
         self.state_history.append(flat.copy())
 
     def plot(self):
-        """Return a list of go.Scatter traces for the four states vs time."""
+        """Return a dict ``{"Plant States": go.Figure}`` of the four states vs time.
+
+        Returns an empty dict when there is no recorded history.
+        """
         if not self.state_history:
-            return []
+            return {}
         states = np.array(self.state_history)
         t = np.array(self.t_history)
         names = ["x", "x_dot", "phi", "phi_dot"]
-        return [
+        traces = [
             go.Scatter(x=t, y=states[:, i], name=name) for i, name in enumerate(names)
         ]
+        fig = go.Figure(data=traces)
+        fig.update_layout(xaxis_title="Time (s)", yaxis_title="State")
+        return {"Plant States": fig}
 
     def animate(self, max_frames=120):
-        """Return an animated go.Figure of the cart + pendulum arm.
+        """Return a dict ``{"Animation": go.Figure}`` of the cart + pendulum arm.
+
+        Returns an empty dict when there is no recorded history.
 
         Geometry: pivot at the cart position (x, 0). The bob sits at
         (x - l*sin(phi), l*cos(phi)) so phi=0 is upright. The sign on the
@@ -170,7 +180,7 @@ class InvertedPendulum(PlantProtocol):
         (in ms), so wall-clock playback ≈ t_final regardless of stride.
         """
         if not self.state_history:
-            return go.Figure()
+            return {}
 
         states = np.array(self.state_history)
         t = np.array(self.t_history)
@@ -288,4 +298,4 @@ class InvertedPendulum(PlantProtocol):
                 )
             ],
         )
-        return fig
+        return {"Animation": fig}

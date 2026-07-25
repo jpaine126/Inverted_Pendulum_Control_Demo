@@ -7,12 +7,30 @@ import pandas as pd
 import panel as pn
 import panel.widgets as pnw
 from plotly import graph_objects as go
-from plotly.subplots import make_subplots
 
 from .main_sim import MainSim
 from .plant import InvertedPendulum
 from .sim_parameters import ControlDemoParam
 from .test_setups import TestSetup
+
+
+def build_pane(figures):
+    """Build a dashboard pane from a producer's dict of plotly figures.
+
+    An empty dict (no recorded history) renders as an empty ``pn.pane.Plotly``;
+    a single figure renders as one pane; multiple figures render as nested
+    ``pn.Tabs``, one sub-tab per figure.
+    """
+    if not figures:
+        return pn.pane.Plotly(go.Figure(), width=800, height=500)
+    if len(figures) == 1:
+        return pn.pane.Plotly(next(iter(figures.values())), width=800, height=500)
+    return pn.Tabs(
+        *[
+            (name, pn.pane.Plotly(fig, width=800, height=500))
+            for name, fig in figures.items()
+        ]
+    )
 
 
 def run_sim(event):
@@ -77,56 +95,24 @@ def run_sim(event):
 
     sim.run_sim()
 
-    # build main time-series figure from plant/observer/controller plot() methods
-    fig = make_subplots(
-        rows=3,
-        shared_xaxes="columns",
-        subplot_titles=("States", "Control Force", "Error"),
-    )
-
-    for trace in plant.plot():
-        fig.add_trace(trace, row=1, col=1)
-
-    for trace in observer.plot():
-        fig.add_trace(trace, row=1, col=1)
-
-    for trace in controller.plot():
-        fig.add_trace(trace, row=2, col=1)
-
-    # error traces: true state (plant) minus estimated state (observer)
-    plant_states = np.array(plant.state_history)
-    observer_states = np.array(observer.estimate_history)
-    t = np.array(plant.t_history)
-    if len(plant_states) and len(observer_states) and len(t):
-        n = min(len(plant_states), len(observer_states), len(t))
-        position_error = plant_states[:n, 0] - observer_states[:n, 0]
-        angle_error = plant_states[:n, 2] - observer_states[:n, 2]
-        fig.add_trace(
-            go.Scatter(x=t[:n], y=position_error, name="Position Error"),
-            row=3,
-            col=1,
-        )
-        fig.add_trace(
-            go.Scatter(x=t[:n], y=angle_error, name="Angle Error"),
-            row=3,
-            col=1,
-        )
-
-    plot.object = fig
-
-    # animated pendulum scene from the plant
-    anim_plot.object = plant.animate()
+    # assign each producer's figures to its dashboard tab. Each producer's
+    # plot()/animate() returns a dict of figures; build_pane renders a single
+    # figure as one pane and multiple figures as nested sub-tabs.
+    plots[0] = ("Animation", build_pane(plant.animate()))
+    plots[1] = ("Plant", build_pane(plant.plot()))
+    plots[2] = ("Controller", build_pane(controller.plot()))
+    plots[3] = ("Observer", build_pane(observer.plot()))
 
 
 def to_widget(param):
     if isinstance(param, pd.DataFrame):
         return pnw.Tabulator(param)
-    elif isinstance(param, float):
-        return pnw.FloatInput(value=param)
-    elif isinstance(param, float):
-        return pnw.IntInput(value=param)
     elif isinstance(param, bool):
         return pnw.Toggle(value=param)
+    elif isinstance(param, float):
+        return pnw.FloatInput(value=param)
+    elif isinstance(param, int):
+        return pnw.IntInput(value=param)
     else:
         raise TypeError(f"Param {param} of type {type(param)} is not supported")
 
@@ -138,9 +124,6 @@ def generate_widgets_from_params(params):
 if __name__ == "__main__":
     logging.info("Starting dashboard")
     obj = ControlDemoParam()
-
-    plot = pn.pane.Plotly(go.Figure(), width=800, height=800)
-    anim_plot = pn.pane.Plotly(go.Figure(), width=800, height=500)
 
     inputs = []
 
@@ -238,6 +221,12 @@ if __name__ == "__main__":
         "value",
     )
 
-    dashboard = pn.Row(pn.Column(*inputs), pn.Column(plot, anim_plot))
+    plots = pn.Tabs(
+        ("Animation", build_pane({})),
+        ("Plant", build_pane({})),
+        ("Controller", build_pane({})),
+        ("Observer", build_pane({})),
+    )
+    dashboard = pn.Row(pn.Column(*inputs), plots)
 
     pn.serve(dashboard)

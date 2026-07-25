@@ -1,9 +1,9 @@
 import math
 
 import numpy as np
-import plotly.graph_objects as go
 import pytest
 from numpy.testing import assert_allclose
+from plotly import graph_objects as go
 
 from Inverted_Pendulum_Control_Demo.plant import InvertedPendulum
 
@@ -221,45 +221,53 @@ class TestRecord:
 
 
 class TestPlot:
-    def test_plot_empty_history_returns_empty_list(self, plant):
-        assert plant.plot() == []
+    def test_plot_empty_history_returns_empty_dict(self, plant):
+        assert plant.plot() == {}
 
-    def test_plot_returns_four_scatter_traces(self, plant_with_history):
-        traces = plant_with_history.plot()
-        assert len(traces) == 4
-        for tr in traces:
+    def test_plot_returns_dict_with_four_scatter_traces(self, plant_with_history):
+        figures = plant_with_history.plot()
+        assert set(figures) == {"Plant States"}
+        fig = figures["Plant States"]
+        assert isinstance(fig, go.Figure)
+        assert len(fig.data) == 4
+        for tr in fig.data:
             assert isinstance(tr, go.Scatter)
 
     def test_plot_trace_names(self, plant_with_history):
-        traces = plant_with_history.plot()
-        assert [t.name for t in traces] == ["x", "x_dot", "phi", "phi_dot"]
+        fig = plant_with_history.plot()["Plant States"]
+        assert [tr.name for tr in fig.data] == ["x", "x_dot", "phi", "phi_dot"]
 
     def test_plot_trace_lengths_match_history(self, plant_with_history):
-        traces = plant_with_history.plot()
+        fig = plant_with_history.plot()["Plant States"]
         n = len(plant_with_history.t_history)
-        for tr in traces:
+        for tr in fig.data:
             assert len(tr.x) == n
             assert len(tr.y) == n
 
     def test_plot_x_uses_t_history(self, plant_with_history):
-        traces = plant_with_history.plot()
-        assert_allclose(np.array(traces[0].x), np.array(plant_with_history.t_history))
+        fig = plant_with_history.plot()["Plant States"]
+        assert_allclose(np.array(fig.data[0].x), np.array(plant_with_history.t_history))
 
     def test_plot_y_uses_state_column(self, plant_with_history):
-        traces = plant_with_history.plot()
+        fig = plant_with_history.plot()["Plant States"]
         states = np.array(plant_with_history.state_history)
-        assert_allclose(np.array(traces[0].y), states[:, 0])
-        assert_allclose(np.array(traces[2].y), states[:, 2])
+        assert_allclose(np.array(fig.data[0].y), states[:, 0])
+        assert_allclose(np.array(fig.data[2].y), states[:, 2])
+
+    def test_plot_has_axis_titles(self, plant_with_history):
+        fig = plant_with_history.plot()["Plant States"]
+        assert fig.layout.xaxis.title.text == "Time (s)"
+        assert fig.layout.yaxis.title.text == "State"
 
 
 class TestAnimate:
-    def test_animate_empty_history_returns_empty_figure(self, plant):
-        fig = plant.animate()
-        assert isinstance(fig, go.Figure)
-        assert len(fig.frames) == 0
+    def test_animate_empty_history_returns_empty_dict(self, plant):
+        assert plant.animate() == {}
 
-    def test_animate_returns_figure_with_frames(self, plant_with_history):
-        fig = plant_with_history.animate()
+    def test_animate_returns_dict_with_frames(self, plant_with_history):
+        figures = plant_with_history.animate()
+        assert set(figures) == {"Animation"}
+        fig = figures["Animation"]
         assert isinstance(fig, go.Figure)
         assert len(fig.frames) > 0
 
@@ -267,7 +275,7 @@ class TestAnimate:
         # 250 samples, max_frames=30 -> stride = ceil(250/30) = 9 -> 28 frames
         for i in range(250):
             plant.record(float(i) * 0.01, np.array([i * 0.01, 0.0, 0.1, 0.0]))
-        fig = plant.animate(max_frames=30)
+        fig = plant.animate(max_frames=30)["Animation"]
         assert len(fig.frames) <= 30
         assert len(fig.frames) > 0
 
@@ -275,7 +283,7 @@ class TestAnimate:
         # 250 samples with default max_frames=120 -> stride = ceil(250/120) = 3
         for i in range(250):
             plant.record(float(i) * 0.01, np.array([i * 0.01, 0.0, 0.1, 0.0]))
-        fig = plant.animate()
+        fig = plant.animate()["Animation"]
         assert len(fig.frames) <= 120
         assert len(fig.frames) > 0
 
@@ -283,11 +291,11 @@ class TestAnimate:
         # 4 samples, default max_frames=120 -> stride = 1 -> all 4 frames
         for i in range(4):
             plant.record(float(i) * 0.01, np.array([i * 0.01, 0.0, 0.1, 0.0]))
-        fig = plant.animate()
+        fig = plant.animate()["Animation"]
         assert len(fig.frames) == 4
 
     def test_animate_frame_has_cart_and_pendulum_traces(self, plant_with_history):
-        fig = plant_with_history.animate()
+        fig = plant_with_history.animate()["Animation"]
         frame = fig.frames[0]
         # Each frame should have a cart trace and a pendulum trace
         assert len(frame.data) == 2
@@ -305,7 +313,7 @@ class TestAnimate:
         """At phi=0 (upright) the bob should be at (x, l) — directly above cart."""
         l = plant.length_arm
         plant.record(0.0, np.array([0.0, 0.0, 0.0, 0.0]))
-        fig = plant.animate()
+        fig = plant.animate()["Animation"]
         frame = fig.frames[0]
         _, pendulum = frame.data
         bob_x, bob_y = pendulum.x[1], pendulum.y[1]
@@ -319,7 +327,7 @@ class TestAnimate:
         """
         l = plant.length_arm
         plant.record(0.0, np.array([0.0, 0.0, 0.5, 0.0]))
-        fig = plant.animate()
+        fig = plant.animate()["Animation"]
         frame = fig.frames[0]
         cart, pendulum = frame.data
         cart_x = cart.x[0]
@@ -332,7 +340,7 @@ class TestAnimate:
         """phi < 0 is a RIGHT tilt: the bob must be drawn at x > cart_x."""
         l = plant.length_arm
         plant.record(0.0, np.array([0.0, 0.0, -0.5, 0.0]))
-        fig = plant.animate()
+        fig = plant.animate()["Animation"]
         frame = fig.frames[0]
         cart, pendulum = frame.data
         cart_x = cart.x[0]
@@ -344,7 +352,7 @@ class TestAnimate:
         """bob_y = l*cos(phi) regardless of the x-offset sign; phi=pi/2 -> y=0."""
         l = plant.length_arm
         plant.record(0.0, np.array([0.0, 0.0, np.pi / 2, 0.0]))
-        fig = plant.animate()
+        fig = plant.animate()["Animation"]
         frame = fig.frames[0]
         _, pendulum = frame.data
         bob_y = pendulum.y[1]
@@ -360,7 +368,7 @@ class TestAnimate:
         dynamics, so the cart appeared to flee the lean.
         """
         plant.record(0.0, np.array([-0.1, 0.0, 0.5, 0.0]))
-        fig = plant.animate()
+        fig = plant.animate()["Animation"]
         frame = fig.frames[0]
         cart, pendulum = frame.data
         cart_x = cart.x[0]
@@ -371,7 +379,7 @@ class TestAnimate:
         assert bob_x < 0.0
 
     def test_animate_layout_has_play_and_reset_buttons(self, plant_with_history):
-        fig = plant_with_history.animate()
+        fig = plant_with_history.animate()["Animation"]
         assert fig.layout.updatemenus is not None
         assert len(fig.layout.updatemenus) >= 1
         buttons = fig.layout.updatemenus[0].buttons
@@ -380,7 +388,7 @@ class TestAnimate:
         assert "Reset" in labels
 
     def test_animate_reset_button_targets_first_frame(self, plant_with_history):
-        fig = plant_with_history.animate()
+        fig = plant_with_history.animate()["Animation"]
         buttons = fig.layout.updatemenus[0].buttons
         reset = next(b for b in buttons if b.label == "Reset")
         # args[0] is the frame selector; should target the first frame's name.
@@ -391,7 +399,7 @@ class TestAnimate:
         assert reset.args[1]["frame"]["duration"] == 0
 
     def test_animate_play_button_plays_from_current(self, plant_with_history):
-        fig = plant_with_history.animate()
+        fig = plant_with_history.animate()["Animation"]
         buttons = fig.layout.updatemenus[0].buttons
         play = next(b for b in buttons if b.label == "Play")
         # args[0] is None → play all frames; fromcurrent=True → resume from slider
@@ -399,17 +407,17 @@ class TestAnimate:
         assert play.args[1]["fromcurrent"] is True
 
     def test_animate_layout_has_slider(self, plant_with_history):
-        fig = plant_with_history.animate()
+        fig = plant_with_history.animate()["Animation"]
         assert fig.layout.sliders is not None
         assert len(fig.layout.sliders) >= 1
 
     def test_animate_slider_step_count_matches_frames(self, plant_with_history):
-        fig = plant_with_history.animate()
+        fig = plant_with_history.animate()["Animation"]
         slider = fig.layout.sliders[0]
         assert len(slider.steps) == len(fig.frames)
 
     def test_animate_slider_step_targets_frame_by_name(self, plant_with_history):
-        fig = plant_with_history.animate()
+        fig = plant_with_history.animate()["Animation"]
         slider = fig.layout.sliders[0]
         # Each step's args[0] should contain the matching frame name. Plotly
         # converts lists to tuples internally, so compare as tuples.
@@ -418,12 +426,12 @@ class TestAnimate:
             assert step.args[1]["mode"] == "immediate"
 
     def test_animate_slider_starts_at_first_frame(self, plant_with_history):
-        fig = plant_with_history.animate()
+        fig = plant_with_history.animate()["Animation"]
         slider = fig.layout.sliders[0]
         assert slider.active == 0
 
     def test_animate_slider_currentvalue_prefix_is_time(self, plant_with_history):
-        fig = plant_with_history.animate()
+        fig = plant_with_history.animate()["Animation"]
         slider = fig.layout.sliders[0]
         assert slider.currentvalue["prefix"] == "Time: "
 
@@ -432,7 +440,7 @@ class TestAnimate:
     ):
         """Play button frame.duration must equal the real sim-time-per-frame
         in ms so playback wall-clock ≈ t_final (not a hardcoded value)."""
-        fig = plant_with_history.animate()
+        fig = plant_with_history.animate()["Animation"]
         # Recompute the subsampled t the same way animate() does
         t_full = np.array(plant_with_history.t_history)
         stride = max(1, math.ceil(len(t_full) / 120))
@@ -454,7 +462,7 @@ class TestAnimate:
             n = int(t_final / dt)
             for i in range(n):
                 plant.record(float(i) * dt, np.array([i * dt, 0.0, 0.1, 0.0]))
-            fig = plant.animate()
+            fig = plant.animate()["Animation"]
             n_frames = len(fig.frames)
             duration_ms = (
                 fig.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"]
@@ -469,7 +477,7 @@ class TestAnimate:
     def test_animate_single_frame_duration_zero_no_crash(self, plant):
         """One recorded sample -> no diff available -> duration 0, no exception."""
         plant.record(0.0, np.array([0.0, 0.0, 0.0, 0.0]))
-        fig = plant.animate()
+        fig = plant.animate()["Animation"]
         buttons = fig.layout.updatemenus[0].buttons
         play = next(b for b in buttons if b.label == "Play")
         assert play.args[1]["frame"]["duration"] == 0
@@ -480,7 +488,7 @@ class TestAnimate:
         currentvalue readout is never blank as you scrub."""
         for i in range(40):
             plant.record(float(i) * 0.05, np.array([i * 0.01, 0.0, 0.1, 0.0]))
-        fig = plant.animate()
+        fig = plant.animate()["Animation"]
         slider = fig.layout.sliders[0]
         # Recompute subsampled t to know expected labels
         t_full = np.array(plant.t_history)
@@ -494,14 +502,14 @@ class TestAnimate:
         # 4 frames -> every step labeled with its time
         for i in range(4):
             plant.record(float(i) * 0.01, np.array([i * 0.01, 0.0, 0.1, 0.0]))
-        fig = plant.animate()
+        fig = plant.animate()["Animation"]
         slider = fig.layout.sliders[0]
         labels = [s.label for s in slider.steps]
         assert all(lb != "" for lb in labels)
         assert len(labels) == 4
 
     def test_animate_layout_has_axis_ranges(self, plant_with_history):
-        fig = plant_with_history.animate()
+        fig = plant_with_history.animate()["Animation"]
         # ranges should be set (not None) so the view doesn't jump frame-to-frame
         assert fig.layout.xaxis.range is not None
         assert fig.layout.yaxis.range is not None
@@ -509,7 +517,7 @@ class TestAnimate:
     def test_animate_y_range_based_on_bar_length(self, plant_with_history):
         """y extents are a function of the bar length l only (with 20% padding)."""
         l = plant_with_history.length_arm
-        fig = plant_with_history.animate()
+        fig = plant_with_history.animate()["Animation"]
         y_min, y_max = fig.layout.yaxis.range
         assert y_min == pytest.approx(-1.2 * l)
         assert y_max == pytest.approx(1.2 * l)
@@ -543,8 +551,8 @@ class TestAnimate:
         for i in range(20):
             p2.record(i * 0.01, np.array([5.0 * i, 0.0, 1.5, 0.0]))
 
-        fig1 = p1.animate()
-        fig2 = p2.animate()
+        fig1 = p1.animate()["Animation"]
+        fig2 = p2.animate()["Animation"]
         assert fig1.layout.yaxis.range == fig2.layout.yaxis.range
 
     def test_animate_y_range_scales_with_bar_length(self):
@@ -560,7 +568,7 @@ class TestAnimate:
                 state=np.zeros(4),
             )
             p.record(0.0, np.array([0.0, 0.0, 0.1, 0.0]))
-            return p.animate()
+            return p.animate()["Animation"]
 
         short = make_fig(0.1)
         long = make_fig(1.0)
@@ -573,7 +581,7 @@ class TestAnimate:
         """x axis must not be scale-anchored to y, otherwise plotly expands the
         y view to maintain aspect ratio when the cart travels far — breaking
         the 'constant y extents' guarantee."""
-        fig = plant_with_history.animate()
+        fig = plant_with_history.animate()["Animation"]
         # No scaleanchor set on xaxis
         assert fig.layout.xaxis.scaleanchor is None
 

@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
+from plotly import graph_objects as go
 from scipy import signal
 
 from ..plant import PlantProtocol
@@ -65,6 +65,7 @@ class BasicKalmanFilter(ObserverTestSetup, setup_name="Basic Kalman Filter"):
         observer.P_last = np.eye(np.size(A, 1)) * sim_params.noise_value**2
 
         self.observer = observer
+        self.plant = plant
         self.estimate_history: list = []
         self.t_history: list = []
 
@@ -77,16 +78,49 @@ class BasicKalmanFilter(ObserverTestSetup, setup_name="Basic Kalman Filter"):
         return estimate
 
     def plot(self):
-        """Return traces of the estimated states vs time.
+        """Return figures of the estimated states and estimation errors vs time.
 
-        Only the measured/estimated position (x) and angle (phi) are returned
-        so they can be overlaid with the plant's true-state traces.
+        Returns a dict with an ``"Estimates"`` figure (estimated x and phi) and,
+        when the plant's true-state history is available, an ``"Errors"`` figure
+        (true − estimated position and angle). An empty history yields an empty
+        dict.
         """
         if not self.estimate_history:
-            return []
+            return {}
         estimates = np.array(self.estimate_history)
         t = np.array(self.t_history)
-        return [
-            go.Scatter(x=t, y=estimates[:, 0], name="x (est)"),
-            go.Scatter(x=t, y=estimates[:, 2], name="phi (est)"),
-        ]
+        est_fig = go.Figure(
+            data=[
+                go.Scatter(x=t, y=estimates[:, 0], name="x (est)"),
+                go.Scatter(x=t, y=estimates[:, 2], name="phi (est)"),
+            ]
+        )
+        est_fig.update_layout(xaxis_title="Time (s)", yaxis_title="State")
+        figures = {"Estimates": est_fig}
+
+        plant = getattr(self, "plant", None)
+        plant_history = getattr(plant, "state_history", None)
+        plant_t_history = getattr(plant, "t_history", None)
+        if plant_history and plant_t_history:
+            plant_states = np.array(plant_history)
+            plant_t = np.array(plant_t_history)
+            n = min(len(plant_states), len(estimates), len(plant_t))
+            if n > 0:
+                err_fig = go.Figure(
+                    data=[
+                        go.Scatter(
+                            x=plant_t[:n],
+                            y=plant_states[:n, 0] - estimates[:n, 0],
+                            name="Position Error",
+                        ),
+                        go.Scatter(
+                            x=plant_t[:n],
+                            y=plant_states[:n, 2] - estimates[:n, 2],
+                            name="Angle Error",
+                        ),
+                    ]
+                )
+                err_fig.update_layout(xaxis_title="Time (s)", yaxis_title="Error")
+                figures["Errors"] = err_fig
+
+        return figures

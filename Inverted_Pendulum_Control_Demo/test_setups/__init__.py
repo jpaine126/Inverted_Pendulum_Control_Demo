@@ -1,6 +1,6 @@
 """Final implemented designs of controllers and observers."""
 
-from typing import List, Literal, Protocol
+from typing import Literal, Protocol
 
 import numpy as np
 import param
@@ -71,12 +71,14 @@ class TestSetup(Protocol):
 
         """
 
-    def plot(self) -> List[go.Scatter]:
-        """Return a list of plotly Scatter traces for the dashboard.
+    def plot(self) -> dict[str, go.Figure]:
+        """Return a dict of plotly Figures for the dashboard.
 
         Implementations should append (time, value) pairs in ``update()`` and
-        return one or more Scatter traces here. Returning a list (even of one
-        trace) keeps the dashboard assembly uniform across plant/observer/controller.
+        build one or more Scatter traces here, returning them wrapped in a
+        ``go.Figure`` (with axis titles) keyed by a figure name so the dashboard
+        can assign each pane directly without further trace composition. An
+        empty history yields an empty dict.
         """
 
     def update(self): ...
