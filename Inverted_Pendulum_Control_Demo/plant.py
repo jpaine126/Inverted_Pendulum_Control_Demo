@@ -26,11 +26,14 @@ class PlantProtocol(Protocol):
         to design to the linear model.
         """
 
-    def record(self, time: float, state: np.ndarray) -> None:
-        """Append a (time, state) sample to the plant's history.
+    def record(self, time: float, state: np.ndarray, force: float = 0.0) -> None:
+        """Append a (time, state, force) sample to the plant's history.
 
         Called by the sim loop each control step so the plant can build its own
-        record for plotting and animation after the sim has run.
+        record for plotting and animation after the sim has run. ``force`` is
+        the control force applied over the step; it is retained so the plant's
+        true accelerations can be reconstructed for richer observer diagnostics
+        (e.g. 6-DOF NEES for a constant-acceleration Kalman filter).
         """
 
     def plot(self) -> dict[str, go.Figure]:
@@ -70,6 +73,7 @@ class InvertedPendulum(PlantProtocol):
 
         self.t_history: list = []
         self.state_history: list = []
+        self.force_history: list = []
 
     def derivative(self, state, force):
         """Derivatives of the full nonlinear EOMs.
@@ -136,15 +140,39 @@ class InvertedPendulum(PlantProtocol):
 
         return A, B, C, D
 
-    def record(self, time, state):
-        """Append a (time, state) sample to the plant's history.
+    def record(self, time, state, force=0.0):
+        """Append a (time, state, force) sample to the plant's history.
 
         Stores a flattened copy of ``state`` so later mutations of ``self.state``
-        don't corrupt the recorded history.
+        don't corrupt the recorded history. ``force`` is recorded as-is so the
+        true per-step accelerations can be recomputed via ``derivative``.
         """
         flat = np.asarray(state).reshape((-1,))
         self.t_history.append(float(time))
         self.state_history.append(flat.copy())
+        self.force_history.append(float(force))
+
+    @property
+    def augmented_state_history(self) -> np.ndarray:
+        """True state augmented with accelerations, shape ``(T, 6)``.
+
+        Each row is ``[x, x_dot, x_ddot, phi, phi_dot, phi_ddot]`` for a recorded
+        sample, where the accelerations are recomputed from the full nonlinear
+        equations of motion (``derivative``) using the recorded state and the
+        control force active over that step. Returns an empty array when there
+        is no recorded history.
+
+        Used by observers whose internal state includes acceleration (e.g. a
+        constant-acceleration Kalman filter) to compute full-DOF NEES against
+        the true plant state.
+        """
+        if not self.state_history:
+            return np.empty((0, 6))
+        rows = []
+        for s, f in zip(self.state_history, self.force_history):
+            d = self.derivative(s, f)
+            rows.append([s[0], s[1], d[1], s[2], s[3], d[3]])
+        return np.array(rows)
 
     def plot(self):
         """Return a dict ``{"Plant States": go.Figure}`` of the four states vs time.

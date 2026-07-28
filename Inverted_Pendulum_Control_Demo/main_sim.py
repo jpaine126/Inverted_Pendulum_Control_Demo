@@ -7,6 +7,8 @@ from scipy.integrate import solve_ivp
 from .plant import PlantProtocol
 from .test_setups import ControllerTestSetup, ObserverTestSetup
 
+STATE_BLOWUP_THRESHOLD = 100.0
+
 
 def value_or_full_like(value, array_like, fill_value):
     if value is None:
@@ -31,6 +33,7 @@ class MainSim:
         sensor_discretize: np.ndarray = None,
         sensor_discretize_offset: np.ndarray = None,
         sensor_bias: np.ndarray = None,
+        state_blowup_threshold: float = STATE_BLOWUP_THRESHOLD,
     ):
         self.dt_control = dt_control
 
@@ -56,6 +59,8 @@ class MainSim:
         )
 
         self.sensor_bias = value_or_full_like(sensor_bias, self.initial_conditions, 0.0)
+
+        self.state_blowup_threshold = state_blowup_threshold
 
         self.state_history = [[], [], [], []]  # real states
         self.adjusted_state_history = [[], [], [], []]  # states w/ noise
@@ -106,7 +111,7 @@ class MainSim:
         control_force = self.controller.update(measurement, time)
 
         self.record(state, final_data, measurement, control_force)
-        self.plant.record(time, state)
+        self.plant.record(time, state, control_force)
 
     def run_sim(self):
         """Run whole sim."""
@@ -136,6 +141,11 @@ class MainSim:
 
             state = np.atleast_2d(a.y[:, -1]).T
             self.plant.state = state
+
+            if not np.all(np.isfinite(state)) or np.any(
+                np.abs(state) > self.state_blowup_threshold
+            ):
+                break
 
 
 def get_noise(noise_mag, size=(4, 1)):

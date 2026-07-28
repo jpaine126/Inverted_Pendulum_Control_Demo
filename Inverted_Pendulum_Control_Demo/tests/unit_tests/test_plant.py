@@ -220,6 +220,58 @@ class TestRecord:
         assert plant.t_history == [0.0, 1.0, 2.0, 3.0, 4.0]
 
 
+class TestRecordForce:
+    def test_force_history_starts_empty(self, plant):
+        assert plant.force_history == []
+
+    def test_record_two_arg_call_still_works(self, plant):
+        """Backward-compat: record(time, state) without force must not raise."""
+        plant.record(0.0, np.zeros(4))
+        assert len(plant.state_history) == 1
+        assert plant.force_history == [0.0]
+
+    def test_record_force_defaults_to_zero(self, plant):
+        plant.record(0.0, np.zeros(4))
+        assert plant.force_history == [0.0]
+
+    def test_record_stores_force(self, plant):
+        plant.record(1.0, np.zeros(4), force=2.5)
+        assert plant.force_history == [2.5]
+
+    def test_record_force_accumulates(self, plant):
+        for i in range(3):
+            plant.record(float(i), np.zeros(4), force=float(i) * 2)
+        assert plant.force_history == [0.0, 2.0, 4.0]
+
+
+class TestAugmentedStateHistory:
+    def test_empty_when_no_history(self, plant):
+        assert plant.augmented_state_history.shape == (0, 6)
+
+    def test_shape_is_T_by_6(self, plant):
+        for i in range(3):
+            plant.record(float(i), np.array([i * 0.01, 0.0, 0.1, 0.0]), force=0.0)
+        assert plant.augmented_state_history.shape == (3, 6)
+
+    def test_position_and_velocity_copied_from_state(self, plant):
+        state = np.array([0.1, 0.2, 0.3, 0.4])
+        plant.record(0.0, state, force=1.0)
+        aug = plant.augmented_state_history
+        assert_allclose(aug[0, 0], 0.1)  # x
+        assert_allclose(aug[0, 1], 0.2)  # x_dot
+        assert_allclose(aug[0, 3], 0.3)  # phi
+        assert_allclose(aug[0, 4], 0.4)  # phi_dot
+
+    def test_accelerations_match_derivative(self, plant):
+        state = np.array([0.1, 0.2, 0.3, 0.4])
+        force = 1.5
+        plant.record(0.0, state, force=force)
+        aug = plant.augmented_state_history
+        d = plant.derivative(state, force)
+        assert_allclose(aug[0, 2], d[1])  # x_ddot
+        assert_allclose(aug[0, 5], d[3])  # phi_ddot
+
+
 class TestPlot:
     def test_plot_empty_history_returns_empty_dict(self, plant):
         assert plant.plot() == {}
