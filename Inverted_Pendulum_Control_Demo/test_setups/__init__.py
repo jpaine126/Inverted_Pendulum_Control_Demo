@@ -1,6 +1,6 @@
 """Final implemented designs of controllers and observers."""
 
-from typing import List, Literal, Protocol
+from typing import Literal, Protocol
 
 import numpy as np
 import param
@@ -71,12 +71,14 @@ class TestSetup(Protocol):
 
         """
 
-    def plot(self) -> List[go.Scatter]:
-        """Return a list of plotly Scatter traces for the dashboard.
+    def plot(self) -> dict[str, go.Figure]:
+        """Return a dict of plotly Figures for the dashboard.
 
         Implementations should append (time, value) pairs in ``update()`` and
-        return one or more Scatter traces here. Returning a list (even of one
-        trace) keeps the dashboard assembly uniform across plant/observer/controller.
+        build one or more Scatter traces here, returning them wrapped in a
+        ``go.Figure`` (with axis titles) keyed by a figure name so the dashboard
+        can assign each pane directly without further trace composition. An
+        empty history yields an empty dict.
         """
 
     def update(self): ...
@@ -84,6 +86,48 @@ class TestSetup(Protocol):
 
 class ObserverTestSetup(TestSetup, is_abstract=True):
     _dynamic_type = "observer"
+
+    # Indices of the plant's [x, x_dot, phi, phi_dot] within the observer's
+    # internal state vector. ``None`` means the internal state *is* the plant
+    # state (identity, 4D); a list (e.g. [0, 1, 3, 4] for a constant-acceleration
+    # filter with internal [x, x_dot, x_ddot, phi, phi_dot, phi_ddot]) lets an
+    # observer estimate a richer state internally while still handing the
+    # controller exactly the plant's 4 states.
+    plant_state_indices: list[int] | None = None
+    # Dimension of the observer's internal state. Required when
+    # ``plant_state_indices`` is set so the injected measurement can be sized
+    # (a trailing acceleration state, e.g. phi_ddot at index 5, would be missed
+    # by ``max(plant_state_indices) + 1``). Ignored when ``plant_state_indices``
+    # is ``None``.
+    internal_state_dim: int | None = None
+
+    def _inject_state(self, state: np.ndarray) -> np.ndarray:
+        """Map a 4D plant measurement into the observer's internal state space.
+
+        Plant-state slots are filled from ``state`` (the measured x, x_dot,
+        phi, phi_dot); all other slots are zero. The non-plant slots are
+        ignored by the observation matrix ``H`` (which only selects x and phi),
+        so the fill value is mathematically irrelevant; it just gives the
+        internal measurement the right shape. Returns ``state`` unchanged when
+        ``plant_state_indices`` is ``None`` (identity).
+        """
+        if self.plant_state_indices is None:
+            return state
+        internal = np.zeros((self.internal_state_dim, 1))
+        internal[self.plant_state_indices] = np.asarray(state).reshape((-1, 1))
+        return internal
+
+    def _extract_state(self, estimate: np.ndarray) -> np.ndarray:
+        """Extract the 4D plant state from an ND internal estimate.
+
+        Selects the rows at ``plant_state_indices``. Returns ``estimate``
+        unchanged when ``plant_state_indices`` is ``None`` (identity). Always
+        returns a 2-D ``(4, 1)`` array so the controller and the sim recorder
+        see a consistent shape regardless of the observer's internal DOF.
+        """
+        if self.plant_state_indices is None:
+            return estimate
+        return np.asarray(estimate).reshape((-1, 1))[self.plant_state_indices]
 
     def update(
         self, control_force: float, state: np.ndarray, time: float
@@ -98,9 +142,9 @@ class ControllerTestSetup(TestSetup, is_abstract=True):
         """Calculate output force from states."""
 
 
-from .basic_kalman_filter import BasicKalmanFilter
-
 # import all test setups here for registration
 from .basic_pid import BasicPID
+from .ca_kalman_filter import CAKalmanFilter
+from .dynamic_kalman_filter import DynamicKalmanFilter
 from .lqr1 import LQR1
 from .pass_through_observer import PassThroughObserver

@@ -69,14 +69,14 @@ class KalmanFilter(Observer):
         x_post = x_pri + np.matmul(K, y_hat)
 
         # P_k|k = (I - K*H)*P_k|k-1
-        P_post = np.matmul((np.eye(4) - np.matmul(K, self.H)), P_pri)
-
+        I_KH = np.eye(np.size(K, 0)) - K @ self.H
+        P_post_2 = I_KH @ P_pri @ I_KH.T + K @ self.R @ K.T
         # y_k|k = z - H*x_k|k
         # y = z - np.matmul(self.H, x_post)
 
         ## Store for next step
 
         self.x_last = x_post
-        self.P_last = P_post
+        self.P_last = P_post_2
 
         return x_post

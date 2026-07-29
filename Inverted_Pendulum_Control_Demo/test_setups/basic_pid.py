@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
+from plotly import graph_objects as go
 
 from ..plant import PlantProtocol
 from ..primitives.controllers import PID
@@ -28,11 +28,17 @@ class BasicPID(ControllerTestSetup, setup_name="Basic PID"):
         return force
 
     def plot(self):
+        if not self.control_history:
+            return {}
         plot_data = np.array(self.control_history)
-        return [
-            go.Scatter(
-                x=plot_data[:, 0],
-                y=plot_data[:, 1],
-                name="Control Force",
-            )
-        ]
+        fig = go.Figure(
+            data=[
+                go.Scatter(
+                    x=plot_data[:, 0],
+                    y=plot_data[:, 1],
+                    name="Control Force",
+                )
+            ]
+        )
+        fig.update_layout(xaxis_title="Time (s)", yaxis_title="Force (N)")
+        return {"Control Force": fig}

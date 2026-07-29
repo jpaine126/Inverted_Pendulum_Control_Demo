@@ -1,14 +1,13 @@
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
 from scipy import signal
 
 from ..plant import PlantProtocol
 from ..primitives.observers import KalmanFilter
-from . import ObserverTestSetup
+from .kalman_filter_base import KalmanFilterBase
 
 
-class BasicKalmanFilter(ObserverTestSetup, setup_name="Basic Kalman Filter"):
+class DynamicKalmanFilter(KalmanFilterBase, setup_name="Dynamic Kalman Filter"):
 
     params = dict(
         Q=pd.DataFrame(
@@ -22,8 +21,8 @@ class BasicKalmanFilter(ObserverTestSetup, setup_name="Basic Kalman Filter"):
         ),
         R=pd.DataFrame(
             [
-                [0.1],
-                [0.05],
+                [0.1, 0],
+                [0, 0.05],
             ],
             index=pd.RangeIndex(0, 2, name="R"),
         ),
@@ -65,28 +64,7 @@ class BasicKalmanFilter(ObserverTestSetup, setup_name="Basic Kalman Filter"):
         observer.P_last = np.eye(np.size(A, 1)) * sim_params.noise_value**2
 
         self.observer = observer
+        self.plant = plant
         self.estimate_history: list = []
+        self.cov_history: list = []
         self.t_history: list = []
-
-    def update(
-        self, control_force: float, state: np.ndarray, time: float
-    ) -> np.ndarray:
-        estimate = self.observer.update(control_force, state)
-        self.estimate_history.append(np.asarray(estimate).reshape((-1,)).copy())
-        self.t_history.append(float(time))
-        return estimate
-
-    def plot(self):
-        """Return traces of the estimated states vs time.
-
-        Only the measured/estimated position (x) and angle (phi) are returned
-        so they can be overlaid with the plant's true-state traces.
-        """
-        if not self.estimate_history:
-            return []
-        estimates = np.array(self.estimate_history)
-        t = np.array(self.t_history)
-        return [
-            go.Scatter(x=t, y=estimates[:, 0], name="x (est)"),
-            go.Scatter(x=t, y=estimates[:, 2], name="phi (est)"),
-        ]

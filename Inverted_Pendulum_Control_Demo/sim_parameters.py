@@ -25,3 +25,28 @@ class ControlDemoParam(param.Parameterized):
 
     t_final = param.Number(10, bounds=(0.0, 50))
     dt_control = param.Number(0.01, bounds=(0.001, 0.5))
+
+    include_disturbance = param.Boolean(
+        False,
+        doc="Apply a process disturbance force to the cart. The disturbance "
+        "is unknown to the controller and observer (not fed forward), so "
+        "the filter must estimate through it. Useful for generating "
+        "persistent excitation to keep NEES from collapsing to zero in a "
+        "converging closed loop.",
+    )
+    disturbance_type = param.Selector(
+        default="sinusoidal",
+        objects=["sinusoidal", "white_noise"],
+        doc="Disturbance waveform: sinusoidal (deterministic, uses frequency) "
+        "or white_noise (Gaussian, frequency is ignored).",
+    )
+    disturbance_amplitude = param.Number(
+        1.0,
+        bounds=(0.0, None),
+        doc="Peak force (N) for sinusoidal, or std-dev (N) for white_noise.",
+    )
+    disturbance_frequency = param.Number(
+        0.5,
+        bounds=(0.0, None),
+        doc="Frequency (Hz) of the sinusoidal disturbance. Ignored for " "white_noise.",
+    )

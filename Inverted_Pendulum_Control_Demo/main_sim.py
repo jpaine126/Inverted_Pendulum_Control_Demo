@@ -7,6 +7,8 @@ from scipy.integrate import solve_ivp
 from .plant import PlantProtocol
 from .test_setups import ControllerTestSetup, ObserverTestSetup
 
+STATE_BLOWUP_THRESHOLD = 100.0
+
 
 def value_or_full_like(value, array_like, fill_value):
     if value is None:
@@ -31,6 +33,11 @@ class MainSim:
         sensor_discretize: np.ndarray = None,
         sensor_discretize_offset: np.ndarray = None,
         sensor_bias: np.ndarray = None,
+        state_blowup_threshold: float = STATE_BLOWUP_THRESHOLD,
+        include_disturbance: bool = False,
+        disturbance_type: str = "sinusoidal",
+        disturbance_amplitude: float = 0.0,
+        disturbance_frequency: float = 0.0,
     ):
         self.dt_control = dt_control
 
@@ -57,6 +64,13 @@ class MainSim:
 
         self.sensor_bias = value_or_full_like(sensor_bias, self.initial_conditions, 0.0)
 
+        self.state_blowup_threshold = state_blowup_threshold
+
+        self.include_disturbance = include_disturbance
+        self.disturbance_type = disturbance_type
+        self.disturbance_amplitude = disturbance_amplitude
+        self.disturbance_frequency = disturbance_frequency
+
         self.state_history = [[], [], [], []]  # real states
         self.adjusted_state_history = [[], [], [], []]  # states w/ noise
 
@@ -64,6 +78,8 @@ class MainSim:
 
         # Collector for control force
         self.control_force_history = []
+        # Collector for disturbance force (process disturbance on the cart)
+        self.disturbance_force_history = []
 
     def record(self, real_state, adjusted_state, measurement, control_force):
         """Record history."""
@@ -78,7 +94,26 @@ class MainSim:
             self.control_force_history, control_force
         )
 
-    def control_step(self, state, control_force, time):
+    def _disturbance_at(self, time: float) -> float:
+        """Disturbance force (N) applied to the cart at the given sim time.
+
+        Returns zero when the disturbance is disabled or the amplitude is
+        zero. For ``sinusoidal`` the force is
+        ``amplitude * sin(2*pi*frequency*time)``; for ``white_noise`` it is a
+        Gaussian draw with std-dev ``amplitude`` (a new draw per control step,
+        held constant over the ZOH propagation interval).
+        """
+        if not self.include_disturbance or self.disturbance_amplitude == 0.0:
+            return 0.0
+        if self.disturbance_type == "sinusoidal":
+            return self.disturbance_amplitude * np.sin(
+                2 * np.pi * self.disturbance_frequency * time
+            )
+        if self.disturbance_type == "white_noise":
+            return float(np.random.normal(0.0, self.disturbance_amplitude))
+        return 0.0
+
+    def control_step(self, state, control_force, time, disturbance=0.0):
         """Single sim control step."""
         if self.measure_noise:
             noisy_state = state + get_noise(self.measurement_noise_value)
@@ -106,7 +141,8 @@ class MainSim:
         control_force = self.controller.update(measurement, time)
 
         self.record(state, final_data, measurement, control_force)
-        self.plant.record(time, state)
+        self.plant.record(time, state, control_force + disturbance)
+        self.disturbance_force_history.append(disturbance)
 
     def run_sim(self):
         """Run whole sim."""
@@ -116,13 +152,14 @@ class MainSim:
 
         # for bigger control steps
         for i, time in enumerate(self.t_control):
-            self.control_step(state, control_force, time)
+            disturbance = self._disturbance_at(time)
+            self.control_step(state, control_force, time, disturbance)
             state = self.state_history[:, -1]
             control_force = self.control_force_history[-1]
 
             # for plant propogation in between control steps
-            def wrapper(t, y, force):
-                deriv = self.plant.derivative(y, force)
+            def wrapper(t, y, force, _dist=disturbance):
+                deriv = self.plant.derivative(y, force + _dist)
                 return deriv
 
             a = solve_ivp(
@@ -136,6 +173,11 @@ class MainSim:
 
             state = np.atleast_2d(a.y[:, -1]).T
             self.plant.state = state
+
+            if not np.all(np.isfinite(state)) or np.any(
+                np.abs(state) > self.state_blowup_threshold
+            ):
+                break
 
 
 def get_noise(noise_mag, size=(4, 1)):
