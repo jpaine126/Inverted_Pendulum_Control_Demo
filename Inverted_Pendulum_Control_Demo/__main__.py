@@ -91,6 +91,10 @@ def run_sim(event):
         sensor_discretize=obj.discretize_bin_size,
         sensor_discretize_offset=obj.discretize_offset,
         sensor_bias=obj.sensor_bias,
+        include_disturbance=obj.include_disturbance,
+        disturbance_type=obj.disturbance_type,
+        disturbance_amplitude=obj.disturbance_amplitude,
+        disturbance_frequency=obj.disturbance_frequency,
     )
 
     sim.run_sim()
@@ -148,6 +152,10 @@ if __name__ == "__main__":
             pnw.ArrayInput.from_param(obj.param.discretize_bin_size),
             pnw.ArrayInput.from_param(obj.param.discretize_offset),
             pnw.ArrayInput.from_param(obj.param.sensor_bias),
+            pnw.Toggle.from_param(obj.param.include_disturbance),
+            pnw.Select.from_param(obj.param.disturbance_type),
+            pnw.FloatInput.from_param(obj.param.disturbance_amplitude),
+            pnw.FloatInput.from_param(obj.param.disturbance_frequency),
             title="Sim Params",
         )
     )

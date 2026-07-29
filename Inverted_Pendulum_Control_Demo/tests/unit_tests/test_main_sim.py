@@ -144,6 +144,7 @@ class TestMainSimInit:
         assert sim.adjusted_state_history == [[], [], [], []]
         assert sim.measurement_history == [[], [], [], []]
         assert sim.control_force_history == []
+        assert sim.disturbance_force_history == []
 
 
 class TestMainSimRecord:
@@ -362,6 +363,7 @@ class TestMainSimRunSimEarlyStop:
         sim.run_sim()
         assert sim.state_history.shape == (4, sim.steps)
         assert sim.control_force_history.shape == (sim.steps,)
+        assert len(sim.disturbance_force_history) == sim.steps
         assert sim.plant.record.call_count == sim.steps
         assert sim.observer.update.call_count == sim.steps
         assert sim.controller.update.call_count == sim.steps
@@ -394,6 +396,7 @@ class TestMainSimRunSimEarlyStop:
         assert sim.adjusted_state_history.shape == (4, n)
         assert sim.measurement_history.shape == (4, n)
         assert sim.control_force_history.shape == (n,)
+        assert len(sim.disturbance_force_history) == n
         assert sim.plant.record.call_count == n
         assert sim.observer.update.call_count == n
         assert sim.controller.update.call_count == n
@@ -432,4 +435,160 @@ class TestMainSimRunSimEarlyStop:
             main_sim, "solve_ivp", _fake_solve_ivp([[0, 0, 0, 0], [np.inf, 0, 0, 0]])
         )
         sim.run_sim()
+        # NaN in the propagated state is treated as a blow-up and stops the sim
         assert sim.state_history.shape == (4, 2)
+
+
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+class TestMainSimDisturbanceAt:
+    """Tests for the ``_disturbance_at`` helper."""
+
+    def test_disabled_returns_zero(self):
+        sim, _, _ = _make_sim()
+        assert sim._disturbance_at(0.0) == 0.0
+        assert sim._disturbance_at(1.0) == 0.0
+
+    def test_zero_amplitude_returns_zero(self):
+        sim, _, _ = _make_sim(
+            include_disturbance=True,
+            disturbance_type="sinusoidal",
+            disturbance_amplitude=0.0,
+        )
+        assert sim._disturbance_at(0.0) == 0.0
+
+    def test_sinusoidal_values(self):
+        sim, _, _ = _make_sim(
+            include_disturbance=True,
+            disturbance_type="sinusoidal",
+            disturbance_amplitude=2.0,
+            disturbance_frequency=0.5,
+        )
+        # 2.0 * sin(2*pi*0.5*t) = 2.0 * sin(pi*t)
+        assert_allclose(sim._disturbance_at(0.0), 0.0, atol=1e-12)
+        assert_allclose(sim._disturbance_at(0.5), 2.0, atol=1e-12)
+        assert_allclose(sim._disturbance_at(1.0), 0.0, atol=1e-12)
+        assert_allclose(sim._disturbance_at(1.5), -2.0, atol=1e-12)
+
+    def test_white_noise_is_random(self):
+        sim, _, _ = _make_sim(
+            include_disturbance=True,
+            disturbance_type="white_noise",
+            disturbance_amplitude=1.0,
+        )
+        np.random.seed(42)
+        expected = np.random.normal(0.0, 1.0)
+        np.random.seed(42)
+        result = sim._disturbance_at(0.0)
+        assert_allclose(result, expected)
+
+    def test_white_noise_different_each_call(self):
+        sim, _, _ = _make_sim(
+            include_disturbance=True,
+            disturbance_type="white_noise",
+            disturbance_amplitude=1.0,
+        )
+        np.random.seed(0)
+        a = sim._disturbance_at(0.0)
+        b = sim._disturbance_at(0.0)
+        assert a != b
+
+    def test_unknown_type_returns_zero(self):
+        sim, _, _ = _make_sim(
+            include_disturbance=True,
+            disturbance_type="bogus",
+            disturbance_amplitude=1.0,
+        )
+        assert sim._disturbance_at(0.0) == 0.0
+
+
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+class TestMainSimControlStepDisturbance:
+    """Tests that control_step routes the disturbance correctly."""
+
+    def test_disturbance_added_to_plant_record_force(self):
+        sim, _, _ = _make_sim(measurement_noise=False)
+        state = np.array([[1.0], [2.0], [3.0], [4.0]])
+        sim.control_step(state, 0.0, 0.0, disturbance=3.0)
+        # plant.record gets controller output (7.5) + disturbance (3.0)
+        call_args = sim.plant.record.call_args
+        assert_allclose(call_args[0][2], 10.5)
+
+    def test_control_force_history_excludes_disturbance(self):
+        sim, _, _ = _make_sim(measurement_noise=False)
+        state = np.array([[1.0], [2.0], [3.0], [4.0]])
+        sim.control_step(state, 0.0, 0.0, disturbance=3.0)
+        assert_allclose(sim.control_force_history, [7.5])
+
+    def test_disturbance_force_history_recorded(self):
+        sim, _, _ = _make_sim(measurement_noise=False)
+        state = np.array([[1.0], [2.0], [3.0], [4.0]])
+        sim.control_step(state, 0.0, 0.0, disturbance=3.0)
+        assert sim.disturbance_force_history == [3.0]
+
+    def test_observer_does_not_see_disturbance(self):
+        sim, _, observer = _make_sim(measurement_noise=False)
+        state = np.array([[1.0], [2.0], [3.0], [4.0]])
+        sim.control_step(state, 5.0, 0.0, disturbance=3.0)
+        # observer.update receives the *previous* control_force (5.0),
+        # not 5.0 + disturbance
+        call_args = observer.update.call_args
+        assert call_args[0][0] == 5.0
+
+    def test_default_disturbance_zero_is_backward_compatible(self):
+        """control_step without disturbance kwarg behaves exactly as before."""
+        sim, _, _ = _make_sim(measurement_noise=False)
+        state = np.array([[1.0], [2.0], [3.0], [4.0]])
+        sim.control_step(state, 0.0, 0.0)
+        call_args = sim.plant.record.call_args
+        assert_allclose(call_args[0][2], 7.5)
+        assert sim.disturbance_force_history == [0.0]
+
+
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+class TestMainSimRunSimDisturbance:
+    """Tests for disturbance injection during run_sim."""
+
+    def test_sinusoidal_disturbance_history_populated(self, monkeypatch):
+        sim, _, _ = _make_runnable_sim(
+            include_disturbance=True,
+            disturbance_type="sinusoidal",
+            disturbance_amplitude=1.0,
+            disturbance_frequency=1.0,
+        )
+        monkeypatch.setattr(
+            main_sim, "solve_ivp", _fake_solve_ivp([[0, 0, 0, 0]] * sim.steps)
+        )
+        sim.run_sim()
+        assert len(sim.disturbance_force_history) == sim.steps
+        # t=0 → sin(0) = 0
+        assert_allclose(sim.disturbance_force_history[0], 0.0)
+        # t=dt → sin(2*pi*dt)
+        dt = sim.dt_control
+        assert_allclose(
+            sim.disturbance_force_history[1], np.sin(2 * np.pi * dt), atol=1e-12
+        )
+
+    def test_disabled_disturbance_all_zero(self, monkeypatch):
+        sim, _, _ = _make_runnable_sim()
+        monkeypatch.setattr(
+            main_sim, "solve_ivp", _fake_solve_ivp([[0, 0, 0, 0]] * sim.steps)
+        )
+        sim.run_sim()
+        assert all(d == 0.0 for d in sim.disturbance_force_history)
+
+    def test_plant_record_includes_disturbance_in_run_sim(self, monkeypatch):
+        sim, _, _ = _make_runnable_sim(
+            include_disturbance=True,
+            disturbance_type="sinusoidal",
+            disturbance_amplitude=1.0,
+            disturbance_frequency=1.0,
+        )
+        monkeypatch.setattr(
+            main_sim, "solve_ivp", _fake_solve_ivp([[0, 0, 0, 0]] * sim.steps)
+        )
+        sim.run_sim()
+        # plant.record(time, state, force) — force should be controller + disturbance
+        for i, call in enumerate(sim.plant.record.call_args_list):
+            t = sim.t_control[i]
+            expected_dist = np.sin(2 * np.pi * 1.0 * t)
+            assert_allclose(call[0][2], 7.5 + expected_dist)
