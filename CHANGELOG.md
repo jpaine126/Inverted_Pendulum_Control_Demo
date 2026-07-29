@@ -2,6 +2,30 @@
 
 <!-- version list -->
 
+## v0.2.0 (2026-07-29)
+
+### Documentation
+
+- Added better readme docs for sim inputs, obersvers, and controllers
+  ([`718b2c7`](https://github.com/jpaine126/Inverted_Pendulum_Control_Demo/commit/718b2c7277636caa3abf728fcc4d167f2dc05aad))
+
+- Update readme
+  ([`b4f892f`](https://github.com/jpaine126/Inverted_Pendulum_Control_Demo/commit/b4f892f7d318527d3b85801fa564b2bd44923882))
+
+### Features
+
+- Constant acceleration kalman filter and NEES plots
+  ([`c5b1507`](https://github.com/jpaine126/Inverted_Pendulum_Control_Demo/commit/c5b15075074b668e393bda39e86813c3810897f5))
+
+- Plant disturbances
+  ([`4aa5071`](https://github.com/jpaine126/Inverted_Pendulum_Control_Demo/commit/4aa50713cf93047e5f0b9b50276c14587920824f))
+
+### Refactoring
+
+- Finish moving all plot responsibility onto TestSetup classes
+  ([`ceb6930`](https://github.com/jpaine126/Inverted_Pendulum_Control_Demo/commit/ceb6930d8f9ef32eec6e8ae41182ceb8c799726e))
+
+
 ## v0.1.1 (2026-07-22)
 
 ### Bug Fixes
